@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BORG Services</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lexend:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16x16.png">
+  <link rel="manifest" href="img/site.webmanifest">
+</head>
+
+<body>
+
+  <!-- ── Loading Overlay ──────────────────────────────────── -->
+  <div id="loadingOverlay" style="position:fixed;inset:0;background:rgba(255,255,255,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:14px;">
+    <img src="img/Borg_Logo.png" alt="BORG" style="width:64px;height:64px;border-radius:14px;object-fit:contain;background:#fff;padding:6px;box-shadow:0 0 0 1px rgba(47,127,240,.2);" />
+    <div style="width:44px;height:44px;border:3px solid #e5e7eb;border-top:3px solid #1a3a6c;border-radius:50%;animation:borg-spin 0.75s linear infinite;"></div>
+    <p style="margin:0;font-family:Inter,sans-serif;font-size:14px;color:#4b5563;font-weight:500;">A carregar dados...</p>
+  </div>
+  <!-- ════════════════════════════════════════════════════════
+       SITE PÚBLICO (Sem login necessário)
+       ════════════════════════════════════════════════════════ -->
+  <div id="public-site">
+
+    <!-- Navbar Pública -->
+    <nav class="pub-nav" id="pubNav">
+      <div class="pub-nav-inner">
+        <a class="pub-nav-logo" href="#pub-hero" onclick="smoothScroll('pub-hero')">
+          <img src="img/Borg_Logo.png" alt="BORG" class="pub-logo-img" />
+          <span class="pub-logo-text">BORG Services</span>
+        </a>
+        <div class="pub-nav-links" id="pubNavLinks">
+          <a href="#pub-servicos" onclick="smoothScroll('pub-servicos')">Serviços</a>
+          <a href="#pub-como" onclick="smoothScroll('pub-como')">Como Funciona</a>
+          <a href="#pub-produtos" onclick="smoothScroll('pub-produtos')">Produtos</a>
+          <a href="#pub-avaliacoes" onclick="smoothScroll('pub-avaliacoes')">Avaliações</a>
+          <a href="#pub-contacto" onclick="smoothScroll('pub-contacto')">Contacto</a>
+        </div>
+        <div class="pub-nav-actions">
+          <button class="btn-primary" id="pub-btn-entrar" onclick="abrirLoginPublico()">
+            <i data-lucide="log-in"></i> <span>Entrar</span>
+          </button>
+          <button class="btn-primary pub-hidden" id="pub-btn-painel" onclick="irParaApp()">
+            <i data-lucide="layout-dashboard"></i> <span>Painel</span>
+          </button>
+        </div>
+        <button class="pub-hamburger" id="pubHamburger" onclick="togglePubMenu()" aria-label="Menu">
+          <i data-lucide="menu"></i>
+        </button>
+      </div>
+      <!-- Mobile menu -->
+      <div class="pub-mobile-menu" id="pubMobileMenu">
+        <a href="#pub-servicos" onclick="smoothScroll('pub-servicos');  closePubMenu()">Serviços</a>
+        <a href="#pub-como" onclick="smoothScroll('pub-como');      closePubMenu()">Como Funciona</a>
+        <a href="#pub-produtos" onclick="smoothScroll('pub-produtos');   closePubMenu()">Produtos</a>
+        <a href="#pub-avaliacoes" onclick="smoothScroll('pub-avaliacoes'); closePubMenu()">Avaliações</a>
+        <a href="#pub-contacto" onclick="smoothScroll('pub-contacto');   closePubMenu()">Contacto</a>
+        <button class="btn-primary" id="pub-mobile-entrar" onclick="abrirLoginPublico();closePubMenu()">
+          <i data-lucide="log-in"></i> Entrar
+        </button>
+        <button class="btn-primary pub-hidden" id="pub-mobile-painel" onclick="irParaApp();closePubMenu()">
+          <i data-lucide="layout-dashboard"></i> Painel
+        </button>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pub-hero" id="pub-hero">
+      <div class="pub-hero-shapes"></div>
+      <div class="pub-hero-content">
+        <div class="pub-hero-badge">
+          <span class="badge-dot"></span> Serviço Profissional
+        </div>
+        <h1 class="pub-hero-title" id="pub-hero-titulo" data-content-key="hero_titulo">
+          Limpeza que Transforma o seu Espaço
+        </h1>
+        <button class="edit-inline-btn pub-edit-trigger" id="edit-hero-titulo" onclick="iniciarEdicaoInline('hero_titulo','pub-hero-titulo')" style="display:none;" title="Editar título">
+          <i data-lucide="edit-3"></i>
+        </button>
+        <p class="pub-hero-sub" id="pub-hero-subtitulo" data-content-key="hero_subtitulo">
+          Profissionalismo, higiene e cuidado em cada detalhe do seu lar ou escritório.
+        </p>
+        <button class="edit-inline-btn pub-edit-trigger" id="edit-hero-subtitulo" onclick="iniciarEdicaoInline('hero_subtitulo','pub-hero-subtitulo')" style="display:none;" title="Editar subtítulo">
+          <i data-lucide="edit-3"></i>
+        </button>
+        <div class="pub-hero-tagline">Limpeza &bull; Higienização &bull; Profissionalismo</div>
+        <div class="pub-hero-actions">
+          <a href="#pub-contacto" class="btn-hero-primary" onclick="smoothScroll('pub-contacto')">
+            <i data-lucide="message-circle"></i> Solicitar Orçamento
+          </a>
+          <a href="#pub-como" class="btn-hero-outline" onclick="smoothScroll('pub-como')">
+            <i data-lucide="play-circle"></i> Como Funciona
+          </a>
+        </div>
+      </div>
+      <div class="pub-hero-visual">
+        <img src="img/Borg_Logo.png" alt="BORG Services" class="pub-hero-logo" />
+      </div>
+    </section>
+
+    <!-- Stats Bar -->
+    <div class="pub-stats-bar">
+      <div class="pub-stat">
+        <span class="pub-stat-num" id="pub-stat-clientes">—</span>
+        <span class="pub-stat-label">Clientes Satisfeitos</span>
+      </div>
+      <div class="pub-stat">
+        <span class="pub-stat-num" id="pub-stat-servicos">—</span>
+        <span class="pub-stat-label">Serviços Realizados</span>
+      </div>
+      <div class="pub-stat">
+        <span class="pub-stat-num" id="pub-stat-avaliacao">—</span>
+        <span class="pub-stat-label">Avaliação Média</span>
+      </div>
+      <div class="pub-stat">
+        <span class="pub-stat-num">100%</span>
+        <span class="pub-stat-label">Satisfação Garantida</span>
+      </div>
+    </div>
+
+    <!-- Services Section -->
+    <section class="pub-section pub-section-fullwidth" id="pub-servicos">
+      <div class="pub-container">
+        <div class="pub-section-header">
+          <span class="pub-eyebrow">O que fazemos</span>
+          <h2>Os Nossos Serviços</h2>
+          <p>Soluções de limpeza profissional para todas as necessidades</p>
+        </div>
+        <div class="pub-services-grid">
+          <div class="pub-service-card">
+            <div class="pub-service-icon">🏠</div>
+            <h3>Limpeza Doméstica</h3>
+            <p>Limpeza completa e profunda da sua casa com produtos de qualidade superior e equipa especializada.</p>
+          </div>
+          <div class="pub-service-card">
+            <div class="pub-service-icon">🏢</div>
+            <h3>Limpeza Comercial</h3>
+            <p>Mantemos o seu escritório e espaço comercial sempre impecável para causar a melhor impressão.</p>
+          </div>
+          <div class="pub-service-card">
+            <div class="pub-service-icon">🔨</div>
+            <h3>Limpeza Pós-Obra</h3>
+            <p>Remoção de resíduos e limpeza especializada após obras e remodelações, pronto para habitar.</p>
+          </div>
+          <div class="pub-service-card">
+            <div class="pub-service-icon">✨</div>
+            <h3>Higienização Especial</h3>
+            <p>Serviços de higienização profunda e tratamento especializado para espaços que exigem cuidado extra.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Como Trabalhamos (editável) -->
+    <section class="pub-section pub-section-dark" id="pub-como">
+      <div class="pub-container">
+        <div class="pub-section-header light">
+          <span class="pub-eyebrow light">Processo</span>
+          <h2 class="light">Como Trabalhamos</h2>
+          <div class="editable-block">
+            <p class="light" id="pub-como-subtitulo" data-content-key="como_subtitulo">
+              Um processo simples e transparente do início ao fim
+            </p>
+            <button class="edit-inline-btn light pub-edit-trigger" id="edit-como-subtitulo" onclick="iniciarEdicaoInline('como_subtitulo','pub-como-subtitulo')" style="display:none;" title="Editar">
+              <i data-lucide="edit-3"></i>
+            </button>
+          </div>
+        </div>
+        <div class="pub-steps">
+          <div class="pub-step">
+            <div class="pub-step-num">01</div>
+            <div class="pub-step-content">
+              <div class="editable-block">
+                <h3 id="pub-passo1-titulo" data-content-key="passo1_titulo">Contacto</h3>
+                <button class="edit-inline-btn light pub-edit-trigger" id="edit-passo1-titulo" onclick="iniciarEdicaoInline('passo1_titulo','pub-passo1-titulo')" style="display:none;"><i data-lucide="edit-3"></i></button>
+              </div>
+              <div class="editable-block">
+                <p id="pub-passo1-desc" data-content-key="passo1_desc">Entre em contacto por telefone, email ou pelo formulário nesta página. Respondemos rapidamente.</p>
+                <button class="edit-inline-btn light pub-edit-trigger" id="edit-passo1-desc" onclick="iniciarEdicaoInline('passo1_desc','pub-passo1-desc')" style="display:none;"><i data-lucide="edit-3"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="pub-step-connector"><i data-lucide="chevron-right"></i></div>
+          <div class="pub-step">
+            <div class="pub-step-num">02</div>
+            <div class="pub-step-content">
+              <div class="editable-block">
+                <h3 id="pub-passo2-titulo" data-content-key="passo2_titulo">Orçamento</h3>
+                <button class="edit-inline-btn light pub-edit-trigger" id="edit-passo2-titulo" onclick="iniciarEdicaoInline('passo2_titulo','pub-passo2-titulo')" style="display:none;"><i data-lucide="edit-3"></i></button>
+              </div>
+              <div class="editable-block">
+                <p id="pub-passo2-desc" data-content-key="passo2_desc">Avaliamos as suas necessidades e apresentamos um orçamento personalizado e sem compromisso.</p>
+                <button class="edit-inline-btn light pub-edit-trigger" id="edit-passo2-desc" onclick="iniciarEdicaoInline('passo2_desc','pub-passo2-desc')" style="display:none;"><i data-lucide="edit-3"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="pub-step-connector"><i data-lucide="chevron-right"></i></div>
+          <div class="pub-step">
+            <div class="pub-step-num">03</div>
+            <div class="pub-step-content">
+              <div class="editable-block">
+                <h3 id="pub-passo3-titulo" data-content-key="passo3_titulo">Serviço</h3>
+                <button class="edit-inline-btn light pub-edit-trigger" id="edit-passo3-titulo" onclick="iniciarEdicaoInline('passo3_titulo','pub-passo3-titulo')" style="display:none;"><i data-lucide="edit-3"></i></button>
+              </div>
+              <div class="editable-block">
+                <p id="pub-passo3-desc" data-content-key="passo3_desc">A nossa equipa realiza o trabalho com profissionalismo, qualidade e pontualidade garantida.</p>
+                <button class="edit-inline-btn light pub-edit-trigger" id="edit-passo3-desc" onclick="iniciarEdicaoInline('passo3_desc','pub-passo3-desc')" style="display:none;"><i data-lucide="edit-3"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Produtos Section -->
+    <section class="pub-section" id="pub-produtos">
+      <div class="pub-container">
+        <div class="pub-section-header">
+          <span class="pub-eyebrow">Qualidade</span>
+          <h2>Produtos que Utilizamos</h2>
+          <div class="editable-block" style="justify-content:center;">
+            <p id="pub-produtos-desc" data-content-key="produtos_desc">
+              Utilizamos apenas produtos certificados e de alta qualidade para uma limpeza eficiente e segura.
+            </p>
+            <button class="edit-inline-btn pub-edit-trigger" id="edit-produtos-desc" onclick="iniciarEdicaoInline('produtos_desc','pub-produtos-desc')" style="display:none;"><i data-lucide="edit-3"></i></button>
+          </div>
+        </div>
+        <div id="pub-produtos-grid" class="pub-produtos-grid">
+          <div class="pub-prod-empty" id="pub-prod-empty">
+            <i data-lucide="package"></i>
+            <p>Nenhum produto adicionado ainda</p>
+          </div>
+        </div>
+        <div id="pub-produtos-gerir-btn" style="display:none;text-align:center;margin-top:28px;">
+          <button class="btn-primary" onclick="irParaApp('produtos')">
+            <i data-lucide="settings"></i> Gerir Produtos
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Avaliações Section (Pública) -->
+    <section class="pub-section pub-section-reviews pub-section-fullwidth" id="pub-avaliacoes">
+      <div class="pub-container">
+        <div class="pub-section-header">
+          <span class="pub-eyebrow">O que dizem</span>
+          <h2>Avaliações dos Clientes</h2>
+          <p>Feedback real de quem já utilizou os nossos serviços</p>
+        </div>
+        <div id="pub-avaliacoes-lista" class="pub-av-grid"></div>
+
+        <!-- Formulário de Nova Avaliação -->
+        <div class="pub-av-form-card">
+          <h3>Deixar a Sua Avaliação</h3>
+          <div class="form-group">
+            <label>Classificação *</label>
+            <div id="av-estrelas-input" class="av-estrelas-interactive"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nome *</label>
+              <input type="text" id="av-pub-nome" placeholder="O seu nome" />
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="av-pub-email" placeholder="seu@email.com" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Funcionária/o que limpou</label>
+            <select id="av-pub-funcionaria">
+              <option value="">Qualquer funcionária/o</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Comentário</label>
+            <textarea id="av-pub-comentario" rows="3" placeholder="Conte a sua experiência..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Fotos <span style="font-weight:400;color:var(--color-muted)">(até 3 imagens)</span></label>
+            <label class="btn-secondary btn-file" style="width:fit-content">
+              <i data-lucide="camera" style="width:14px;height:14px;vertical-align:middle;margin-right:6px"></i> Seleccionar fotos
+              <input type="file" id="av-pub-fotos" accept="image/*" multiple onchange="previewAvaliacaoFotos(event)" style="display:none"/>
+            </label>
+            <div id="av-pub-fotos-preview" class="av-fotos-preview-row"></div>
+          </div>
+          <button class="btn-primary" onclick="enviarAvaliacaoPublica()">
+            <i data-lucide="send"></i> Enviar Avaliação
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contacto / Chat -->
+    <section class="pub-section pub-contact-section" id="pub-contacto">
+      <div class="pub-container">
+        <div class="pub-contact-grid">
+          <div class="pub-contact-info">
+            <span class="pub-eyebrow">Fale Connosco</span>
+            <h2>Pronto para ter um espaço impecável?</h2>
+            <p>Envie-nos uma mensagem e entraremos em contacto consigo o mais brevemente possível. Sem compromisso.</p>
+            <div class="pub-contact-details">
+              <div class="pub-contact-detail-row">
+                <div class="pub-contact-icon-wrap"><i data-lucide="phone"></i></div>
+                <div class="editable-block">
+                  <span id="pub-contact-telefone" data-content-key="contact_telefone">+351 XXX XXX XXX</span>
+                  <button class="edit-inline-btn pub-edit-trigger" id="edit-contact-telefone" onclick="iniciarEdicaoInline('contact_telefone','pub-contact-telefone')" style="display:none;"><i data-lucide="edit-3"></i></button>
+                </div>
+              </div>
+              <div class="pub-contact-detail-row">
+                <div class="pub-contact-icon-wrap"><i data-lucide="mail"></i></div>
+                <div class="editable-block">
+                  <span id="pub-contact-email" data-content-key="contact_email">info@borgservices.pt</span>
+                  <button class="edit-inline-btn pub-edit-trigger" id="edit-contact-email" onclick="iniciarEdicaoInline('contact_email','pub-contact-email')" style="display:none;"><i data-lucide="edit-3"></i></button>
+                </div>
+              </div>
+              <div class="pub-contact-detail-row">
+                <div class="pub-contact-icon-wrap"><i data-lucide="map-pin"></i></div>
+                <div class="editable-block">
+                  <span id="pub-contact-morada" data-content-key="contact_morada">Porto, Portugal</span>
+                  <button class="edit-inline-btn pub-edit-trigger" id="edit-contact-morada" onclick="iniciarEdicaoInline('contact_morada','pub-contact-morada')" style="display:none;"><i data-lucide="edit-3"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="pub-contact-form-card">
+            <h3>Enviar Mensagem</h3>
+            <div class="form-group">
+              <label>Nome *</label>
+              <input type="text" id="contacto-nome" placeholder="O seu nome completo" />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="contacto-email" placeholder="seu@email.com" />
+              </div>
+              <div class="form-group">
+                <label>Telefone</label>
+                <input type="tel" id="contacto-telefone" placeholder="9XX XXX XXX" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Assunto</label>
+              <select id="contacto-assunto">
+                <option value="Orçamento">Solicitar Orçamento</option>
+                <option value="Informação">Pedido de Informação</option>
+                <option value="Agendamento">Agendar Serviço</option>
+                <option value="Reclamação">Reclamação</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Mensagem *</label>
+              <textarea id="contacto-mensagem" rows="4" placeholder="Descreva o que precisa..."></textarea>
+            </div>
+            <button class="btn-primary btn-block" onclick="enviarContacto()">
+              <i data-lucide="send"></i> Enviar Mensagem
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="pub-footer">
+      <div class="pub-container">
+        <div class="pub-footer-inner">
+          <div class="pub-footer-brand">
+            <img src="img/Borg_Logo.png" alt="BORG" class="pub-footer-logo" />
+            <div>
+              <span class="pub-footer-name">BORG Services</span>
+              <span class="pub-footer-tag">Limpeza &bull; Higienização &bull; Profissionalismo</span>
+            </div>
+          </div>
+          <p class="pub-footer-copy">&copy; 2025 BORG Services. Todos os direitos reservados.</p>
+        </div>
+      </div>
+    </footer>
+  </div><!-- fim #public-site -->
+
+  <!-- ════════════════════════════════════════════════════════
+       APLICAÇÃO (Após login)
+       ════════════════════════════════════════════════════════ -->
+  <div id="app-container" class="app-hidden">
+
+    <!-- ── Sidebar ─────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <img src="img/Borg_Logo.png" alt="BORG Services" class="logo-image" />
+        <span class="logo-text">BORG Services</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item" data-page="relatorios">
+          <i data-lucide="bar-chart-2"></i>
+          <span>Relatórios</span>
+        </button>
+        <button class="nav-item colaborador-only" data-page="colaborador" style="display:none;">
+          <i data-lucide="user-check"></i>
+          <span>Área Colaborador</span>
+        </button>
+        <button class="nav-item" data-page="clientes">
+          <i data-lucide="users"></i>
+          <span>Clientes</span>
+        </button>
+        <button class="nav-item" data-page="funcionarias">
+          <i data-lucide="briefcase"></i>
+          <span>Funcionárias/os</span>
+        </button>
+        <button class="nav-item" data-page="agenda">
+          <i data-lucide="calendar-days"></i>
+          <span>Agenda</span>
+        </button>
+        <button class="nav-item" data-page="produtos">
+          <i data-lucide="package"></i>
+          <span>Produtos</span>
+        </button>
+        <button class="nav-item funcionario-plus" data-page="mensagens">
+          <i data-lucide="message-square"></i>
+          <span>Mensagens</span>
+          <span class="nav-badge" id="badge-mensagens" style="display:none;">0</span>
+        </button>
+        <button class="nav-item" data-page="avaliacoes">
+          <i data-lucide="star"></i>
+          <span>Avaliações</span>
+        </button>
+        <button class="nav-item admin-only" data-page="configuracao">
+          <i data-lucide="settings"></i>
+          <span>Configuração</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="sidebar-site-btn" onclick="voltarParaSite()" title="Ver site público">
+          <i data-lucide="globe"></i>
+          <span>Ver Site</span>
+        </button>
+        <button class="sidebar-user sidebar-user-btn" type="button" onclick="abrirModalPerfil()">
+          <div class="user-avatar" id="userAvatar">U</div>
+          <div class="user-info">
+            <span class="user-name">Utilizador</span>
+            <span class="user-role">Colaborador</span>
+          </div>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ── Main Wrapper ────────────────────────────────────── -->
+    <div class="main-wrapper">
+
+      <!-- Topbar -->
+      <header class="topbar">
+        <button class="menu-toggle" id="menuToggle">
+          <i data-lucide="menu"></i>
+        </button>
+        <div class="topbar-title" id="topbarTitle">Relatórios</div>
+        <div class="topbar-actions">
+          <button class="btn-secondary btn-sm" onclick="voltarParaSite()">
+            <i data-lucide="globe"></i>
+            <span>Site</span>
+          </button>
+          <button class="btn-primary btn-sm" id="btnLoginHeader" type="button">
+            <i data-lucide="user-circle"></i>
+            <span>Perfil</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- ════════ PÁGINA: RELATÓRIOS ════════ -->
+      <main class="page active" id="page-relatorios">
+        <div class="page-header">
+          <h1>Relatórios</h1>
+          <p class="page-subtitle">Análise e estatísticas</p>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon" style="background:#EFF6FF;color:#3B82F6;"><i data-lucide="calendar-check"></i></div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-servicos">0</span>
+              <span class="stat-label">Serviços na Semana</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:#F0FDF4;color:#10B981;"><i data-lucide="users"></i></div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-clientes">0</span>
+              <span class="stat-label">Clientes Ativos</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:#FFF7ED;color:#F59E0B;"><i data-lucide="clock"></i></div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-horas">0h</span>
+              <span class="stat-label">Horas Totais</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:#FDF4FF;color:#A855F7;"><i data-lucide="briefcase"></i></div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-funcionarias">0</span>
+              <span class="stat-label">Funcionárias/os</span>
+            </div>
+          </div>
+        </div>
+        <div class="dashboard-grid">
+          <div class="card">
+            <div class="card-header">
+              <h2>Horas por Funcionária/os</h2>
+              <span class="badge-week">Esta semana</span>
+            </div>
+            <div id="horas-funcionarias" class="funcionaria-list">
+              <div class="empty-state-small"><i data-lucide="user-x"></i>
+                <p>Sem dados ainda</p>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h2>Serviços de Hoje</h2>
+              <span class="badge-today" id="today-date"></span>
+            </div>
+            <div id="servicos-hoje" class="servicos-hoje-list">
+              <div class="empty-state-small"><i data-lucide="calendar-x"></i>
+                <p>Sem serviços hoje</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="relatorios-grid">
+          <div class="card">
+            <div class="card-header">
+              <h2>Resumo por Funcionária</h2>
+            </div>
+            <div id="relatorio-funcionarias"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h2>Serviços por Cliente</h2>
+            </div>
+            <div id="relatorio-clientes"></div>
+          </div>
+          <div class="card full-width">
+            <div class="card-header">
+              <h2>Distribuição Semanal (horas por dia)</h2>
+            </div>
+            <div id="relatorio-semanal" class="chart-bars"></div>
+          </div>
+        </div>
+      </main>
+
+      <!-- ════════ PÁGINA: COLABORADOR ════════ -->
+      <main class="page" id="page-colaborador">
+        <div class="page-header">
+          <h1>Área do Colaborador</h1>
+          <p class="page-subtitle">Acesso temporário até o seu cargo ser atribuído.</p>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:28px;">
+            <h2 style="margin-bottom:12px;">Bem-vindo, <span id="colaborador-name">Colaborador</span></h2>
+            <p style="margin-bottom:10px;color:var(--color-muted);">O seu login foi criado com sucesso.</p>
+            <p style="margin-bottom:10px;color:var(--color-muted);">Assim que um gestor atribuir um cargo, as suas permissões serão libertadas.</p>
+          </div>
+        </div>
+      </main>
+
+      <!-- ════════ PÁGINA: CLIENTES ════════ -->
+      <main class="page" id="page-clientes">
+        <div class="page-header">
+          <h1>Clientes</h1>
+          <p class="page-subtitle">Gestão de todos os clientes</p>
+          <button class="btn-primary" onclick="abrirModalCliente()">
+            <i data-lucide="user-plus"></i> Adicionar Cliente
+          </button>
+        </div>
+        <div class="search-bar">
+          <i data-lucide="search"></i>
+          <input type="text" id="searchClientes" placeholder="Pesquisar clientes..." oninput="renderClientes()" />
+        </div>
+        <div class="table-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Telefone</th>
+                <th>Morada</th>
+                <th>Observações</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-clientes"></tbody>
+          </table>
+          <div id="clientes-empty" class="empty-state" style="display:none;">
+            <i data-lucide="users"></i>
+            <h3>Nenhum cliente encontrado</h3>
+            <p>Adicione o primeiro cliente para começar</p>
+            <button class="btn-primary" onclick="abrirModalCliente()"><i data-lucide="plus"></i> Adicionar Cliente</button>
+          </div>
+        </div>
+      </main>
+
+      <!-- ════════ PÁGINA: FUNCIONÁRIAS ════════ -->
+      <main class="page" id="page-funcionarias">
+        <div class="page-header">
+          <h1>Funcionárias/os</h1>
+          <p class="page-subtitle">Equipa de trabalho</p>
+          <button class="btn-primary" onclick="abrirModalFuncionaria()">
+            <i data-lucide="user-plus"></i> Adicionar
+          </button>
+        </div>
+        <div class="funcionarias-grid-wrapper">
+          <div id="grid-funcionarias" class="funcionarias-grid"></div>
+        </div>
+        <div id="funcionarias-empty" class="empty-state" style="display:none;">
+          <i data-lucide="briefcase"></i>
+          <h3>Nenhuma funcionária registada</h3>
+          <p>Adicione a primeira funcionária</p>
+          <button class="btn-primary" onclick="abrirModalFuncionaria()"><i data-lucide="plus"></i> Adicionar</button>
+        </div>
+      </main>
+
+      <!-- ════════ PÁGINA: AGENDA ════════ -->
+      <main class="page" id="page-agenda">
+        <div class="page-header">
+          <h1>Agenda Semanal</h1>
+          <div class="week-nav">
+            <button class="btn-icon" id="semanaAnterior"><i data-lucide="chevron-left"></i></button>
+            <span id="semana-label" class="semana-label"></span>
+            <button class="btn-icon" id="semanaProxima"><i data-lucide="chevron-right"></i></button>
+          </div>
+          <button class="btn-primary admin-only" onclick="abrirModalServico()">
+            <i data-lucide="plus"></i> Novo Serviço
+          </button>
+        </div>
+        <div class="agenda-scroll">
+          <div class="agenda-container" id="agenda-container"></div>
+        </div>
+      </main>
+
+      <!-- ════════ PÁGINA: PRODUTOS ════════ -->
+      <main class="page" id="page-produtos">
+        <div class="page-header">
+          <h1>Produtos</h1>
+          <p class="page-subtitle">Produtos utilizados nos serviços — visível no site público</p>
+          <button class="btn-primary admin-only" id="btn-add-produto" onclick="abrirModalProduto()" style="display:none;">
+            <i data-lucide="plus"></i> Adicionar Produto
+          </button>
+        </div>
+        <div id="produtos-grid" class="produtos-grid-app"></div>
+        <div id="produtos-empty" class="empty-state" style="display:none;">
+          <i data-lucide="package"></i>
+          <h3>Nenhum produto registado</h3>
+          <p>Adicione os produtos utilizados nos serviços de limpeza</p>
+          <button class="btn-primary admin-only" onclick="abrirModalProduto()" style="display:none;"><i data-lucide="plus"></i> Adicionar Produto</button>
+        </div>
+      </main>
+
+      <!-- ════════ PÁGINA: MENSAGENS ════════ -->
+      <main class="page" id="page-mensagens">
+        <div class="page-header">
+          <h1>Mensagens</h1>
+          <p class="page-subtitle">Mensagens de clientes e chat privado com a equipa</p>
+          <button class="btn-secondary" onclick="carregarMensagensApp()">
+            <i data-lucide="refresh-cw"></i> Actualizar
+          </button>
+        </div>
+
+        <div class="mensagens-tabs" id="mensagens-tabs">
+          <button class="tab-btn admin-only" data-tab="clientes" onclick="mudarTabMensagens('clientes')">
+            <i data-lucide="users"></i> Mensagens de Clientes
+          </button>
+          <button class="tab-btn" data-tab="equipa" onclick="mudarTabMensagens('equipa')">
+            <i data-lucide="message-circle"></i> Chat da Equipa
+          </button>
+        </div>
+
+        <!-- Aba: Mensagens de Clientes -->
+        <div id="mensagens-tab-clientes" class="mensagens-tab-content">
+          <div id="mensagens-lista" class="mensagens-lista"></div>
+          <div id="mensagens-empty" class="empty-state" style="display:none;">
+            <i data-lucide="message-circle"></i>
+            <h3>Nenhuma mensagem</h3>
+            <p>Ainda não há mensagens de clientes pelo site</p>
+          </div>
+        </div>
+
+        <!-- Aba: Chat privado com a Equipa -->
+        <div id="mensagens-tab-equipa" class="mensagens-tab-content" style="display:none;">
+          <div class="chat-equipa-wrapper">
+            <div class="chat-equipa-lista admin-only" id="chatEquipaLista"></div>
+            <div class="chat-equipa-painel">
+              <div class="chat-equipa-titulo" id="chat-equipa-titulo">Selecione uma conversa</div>
+              <div id="chat-equipa-msgs" class="av-chat-msgs"></div>
+              <div class="av-chat-input-row">
+                <input type="text" id="chat-equipa-input" placeholder="Escrever mensagem..." onkeydown="if(event.key==='Enter')enviarMensagemInterna();" />
+                <button class="btn-primary btn-sm" onclick="enviarMensagemInterna()">
+                  <i data-lucide="send"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- ════════ PÁGINA: AVALIAÇÕES ════════ -->
+      <main class="page" id="page-avaliacoes">
+        <div class="page-header">
+          <h1>Avaliações</h1>
+          <p class="page-subtitle">Feedback dos clientes sobre os serviços prestados</p>
+          <button class="btn-secondary" onclick="carregarAvaliacoesApp()">
+            <i data-lucide="refresh-cw"></i> Actualizar
+          </button>
+        </div>
+        <div id="avaliacoes-lista" class="avaliacoes-lista-app"></div>
+        <div id="avaliacoes-empty" class="empty-state" style="display:none;">
+          <i data-lucide="star"></i>
+          <h3>Nenhuma avaliação</h3>
+          <p>As avaliações dos clientes aparecerão aqui</p>
+        </div>
+      </main>
+
+      <!-- ════════ PÁGINA: CONFIGURAÇÃO ════════ -->
+      <main class="page" id="page-configuracao">
+        <div class="page-header">
+          <h1>Configuração</h1>
+          <p class="page-subtitle">Gerir cargos de utilizadores</p>
+        </div>
+        <div class="table-card">
+          <div class="table-card-header">
+            <h2>Utilizadores</h2>
+            <p class="field-note">Apenas Gestores ou superiores podem alterar os cargos.</p>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Email</th>
+                <th>Telefone</th>
+                <th>Cargo</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-configuracao"></tbody>
+          </table>
+          <div id="configuracao-empty" class="empty-state" style="display:none;"></div>
+        </div>
+      </main>
+
+    </div><!-- fim main-wrapper -->
+  </div><!-- fim #app-container -->
+
+  <!-- ── Overlay Mobile ──────────────────────────────────── -->
+  <div class="overlay" id="overlay" onclick="fecharSidebar()"></div>
+
+  <!-- ════════════════════════════════════════════════════════
+       MODAIS
+       ════════════════════════════════════════════════════════ -->
+
+  <!-- Modal: Novo/Editar Serviço (com seleção múltipla de dias) -->
+  <div class="modal-backdrop" id="modal-servico">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-servico-title">Novo Serviço</h3>
+        <button class="modal-close" onclick="fecharModal('modal-servico')"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="servico-id" />
+        <div class="form-row">
+          <div class="form-group">
+            <label>Cliente *</label>
+            <select id="servico-cliente" required>
+              <option value="">Selecionar cliente...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Funcionária/os *</label>
+            <select id="servico-funcionaria" required>
+              <option value="">Selecionar funcionária/os...</option>
+            </select>
+          </div>
+        </div>
+        <!-- Seleção múltipla de dias -->
+        <div class="form-group">
+          <label>Dia(s) da Semana * <span class="field-note" style="display:inline;">(pode selecionar vários)</span></label>
+          <div class="dias-selecao" id="dias-selecao">
+            <button type="button" class="dia-btn" data-dia="0">Seg</button>
+            <button type="button" class="dia-btn" data-dia="1">Ter</button>
+            <button type="button" class="dia-btn" data-dia="2">Qua</button>
+            <button type="button" class="dia-btn" data-dia="3">Qui</button>
+            <button type="button" class="dia-btn" data-dia="4">Sex</button>
+            <button type="button" class="dia-btn" data-dia="5">Sáb</button>
+            <button type="button" class="dia-btn" data-dia="6">Dom</button>
+          </div>
+          <span class="field-note">Clique para selecionar. Azul = selecionado.</span>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Hora de Início *</label>
+            <input type="time" id="servico-inicio" required oninput="calcularHoras()" onchange="calcularHoras()" />
+          </div>
+          <div class="form-group">
+            <label>Hora de Fim *</label>
+            <input type="time" id="servico-fim" required oninput="calcularHoras()" onchange="calcularHoras()" />
+          </div>
+        </div>
+        <div class="horas-calculadas" id="horas-calculadas" style="display:none;">
+          <i data-lucide="clock"></i>
+          <span id="horas-calculadas-text"></span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="fecharModal('modal-servico')">Cancelar</button>
+        <button class="btn-primary" onclick="salvarServico()">
+          <i data-lucide="save"></i> Guardar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Novo/Editar Cliente -->
+  <div class="modal-backdrop" id="modal-cliente">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-cliente-title">Novo Cliente</h3>
+        <button class="modal-close" onclick="fecharModal('modal-cliente')"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="cliente-id" />
+        <div class="form-group">
+          <label>Nome *</label>
+          <input type="text" id="cliente-nome" placeholder="Nome completo" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Telefone</label>
+            <input type="tel" id="cliente-telefone" placeholder="9XX XXX XXX" />
+          </div>
+          <div class="form-group">
+            <label>Morada</label>
+            <input type="text" id="cliente-morada" placeholder="Rua, nº, cidade" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Observações</label>
+          <textarea id="cliente-obs" rows="3" placeholder="Notas especiais, animais, preferências..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="fecharModal('modal-cliente')">Cancelar</button>
+        <button class="btn-danger" id="btn-eliminar-cliente" style="display:none;" onclick="confirmarEliminar('cliente',document.getElementById('cliente-id').value)">
+          <i data-lucide="trash-2"></i> Eliminar
+        </button>
+        <button class="btn-primary" onclick="salvarCliente()"><i data-lucide="save"></i> Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Nova/Editar Funcionária -->
+  <div class="modal-backdrop" id="modal-funcionaria">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-funcionaria-title">Nova Funcionária</h3>
+        <button class="modal-close" onclick="fecharModal('modal-funcionaria')"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="funcionaria-id" />
+        <div class="form-group">
+          <label>Nome *</label>
+          <input type="text" id="funcionaria-nome" placeholder="Nome completo" required />
+        </div>
+        <div class="form-group">
+          <label>Cargo *</label>
+          <select id="funcionaria-nivel" required>
+            <option value="">Selecione o cargo</option>
+            <option value="5">Administrador</option>
+            <option value="4">Gestor</option>
+            <option value="3">Supervisor</option>
+            <option value="2">Assistente</option>
+            <option value="1">Auxiliar</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Contacto</label>
+          <input type="tel" id="funcionaria-contacto" placeholder="9XX XXX XXX" />
+        </div>
+        <div class="form-group">
+          <label>Conta de login vinculada</label>
+          <select id="funcionaria-usuario" onchange="autoPreencherFuncionariaPorUsuario()">
+            <option value="">Sem conta vinculada</option>
+          </select>
+          <span class="field-note">Liga esta funcionária/o à conta com que inicia sessão, para que só ela (e gestores/administradores) possa editar a sua agenda.</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="fecharModal('modal-funcionaria')">Cancelar</button>
+        <button class="btn-danger" id="btn-eliminar-funcionaria" style="display:none;" onclick="confirmarEliminar('funcionaria',document.getElementById('funcionaria-id').value)">
+          <i data-lucide="trash-2"></i> Eliminar
+        </button>
+        <button class="btn-primary" onclick="salvarFuncionaria()"><i data-lucide="save"></i> Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Produto -->
+  <div class="modal-backdrop" id="modal-produto">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-produto-title">Novo Produto</h3>
+        <button class="modal-close" onclick="fecharModal('modal-produto')"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="produto-id" />
+        <div class="form-group">
+          <label>Nome do Produto *</label>
+          <input type="text" id="produto-nome" placeholder="Ex: Desinfetante HG Professional" required />
+        </div>
+        <div class="form-group">
+          <label>Descrição</label>
+          <textarea id="produto-descricao" rows="3" placeholder="Para que serve, características..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>URL da Imagem</label>
+          <input type="url" id="produto-imagem" placeholder="https://exemplo.com/imagem.jpg" />
+          <span class="field-note">Link direto para a imagem do produto (opcional).</span>
+        </div>
+        <div class="form-group">
+          <label>Link de Compra</label>
+          <input type="url" id="produto-link" placeholder="https://loja.com/produto" />
+          <span class="field-note">Pode adicionar múltiplos links separados por vírgula.</span>
+        </div>
+        <div class="form-group">
+          <label>Ordem (posição na grelha)</label>
+          <input type="number" id="produto-ordem" placeholder="0" min="0" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="fecharModal('modal-produto')">Cancelar</button>
+        <button class="btn-danger" id="btn-eliminar-produto" style="display:none;" onclick="confirmarEliminar('produto',document.getElementById('produto-id').value)">
+          <i data-lucide="trash-2"></i> Eliminar
+        </button>
+        <button class="btn-primary" onclick="salvarProduto()"><i data-lucide="save"></i> Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Ver Avaliação + Chat -->
+  <div class="modal-backdrop" id="modal-avaliacao">
+    <div class="modal modal-avaliacao-lg">
+      <div class="modal-header">
+        <h3>Avaliação do Cliente</h3>
+        <button class="modal-close" onclick="fecharModal('modal-avaliacao')"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body modal-av-body">
+        <input type="hidden" id="modal-av-id" />
+        <div id="modal-av-detalhe"></div>
+        <!-- Chat -->
+        <div class="av-chat-section">
+          <h4 class="av-chat-title"><i data-lucide="message-circle" style="width:16px;height:16px;vertical-align:middle;margin-right:6px"></i>Chat</h4>
+          <div id="av-chat-mensagens" class="av-chat-msgs"></div>
+          <div class="av-chat-input-row">
+            <input type="text" id="av-chat-input" placeholder="Escrever mensagem..." onkeydown="if(event.key==='Enter')enviarChatAvaliacao();" />
+            <button class="btn-primary btn-sm" onclick="enviarChatAvaliacao()">
+              <i data-lucide="send"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-danger" id="btn-eliminar-avaliacao" style="display:none;margin-right:auto;" onclick="confirmarEliminar('avaliacao', document.getElementById('modal-av-id').value)">
+          <i data-lucide="trash-2"></i> Eliminar
+        </button>
+        <button class="btn-secondary" onclick="fecharModal('modal-avaliacao')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Ver/Responder Mensagem -->
+  <div class="modal-backdrop" id="modal-mensagem">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Mensagem do Cliente</h3>
+        <button class="modal-close" onclick="fecharModal('modal-mensagem')"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="mensagem-id" />
+        <div class="mensagem-detalhe" id="mensagem-detalhe"></div>
+        <div class="form-group" style="margin-top:16px;">
+          <label>Resposta</label>
+          <textarea id="mensagem-resposta" rows="4" placeholder="Escreva a sua resposta..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-danger" id="btn-eliminar-mensagem" style="display:none;margin-right:auto;" onclick="confirmarEliminar('mensagem', document.getElementById('mensagem-id').value)">
+          <i data-lucide="trash-2"></i> Eliminar
+        </button>
+        <button class="btn-secondary" onclick="fecharModal('modal-mensagem')">Fechar</button>
+        <button class="btn-primary" onclick="responderMensagem()">
+          <i data-lucide="send"></i> Enviar Resposta
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Confirmar Eliminação -->
+  <div class="modal-backdrop" id="modal-confirmar">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>Confirmar Eliminação</h3>
+        <button class="modal-close" onclick="fecharModal('modal-confirmar')"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="confirm-icon"><i data-lucide="alert-triangle"></i></div>
+        <p id="confirm-msg" style="text-align:center;color:var(--color-muted);">Tem a certeza?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="fecharModal('modal-confirmar')">Cancelar</button>
+        <button class="btn-danger" id="btn-confirmar-acao"><i data-lucide="trash-2"></i> Eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Perfil -->
+  <div class="modal-backdrop" id="modal-perfil">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Perfil do Utilizador</h3>
+        <button class="modal-close" onclick="fecharModal('modal-perfil')"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="profile-photo-upload">
+          <div class="profile-photo-preview" id="profilePhotoPreview">U</div>
+          <label class="btn-secondary btn-file">
+            Alterar foto
+            <input type="file" id="perfil-foto" accept="image/*" onchange="previewPerfilFoto(event)" />
+          </label>
+        </div>
+        <div class="form-group">
+          <label>Nome</label>
+          <input type="text" id="profileName" placeholder="Seu nome" required />
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="profileEmail" placeholder="seu@email.com" required />
+        </div>
+        <div class="form-group">
+          <label>Telefone</label>
+          <input type="tel" id="profileTelefone" placeholder="9XX XXX XXX" required />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" type="button" onclick="logoutUsuario()">
+          <i data-lucide="log-out"></i> Sair
+        </button>
+        <button class="btn-secondary" type="button" onclick="fecharModal('modal-perfil')">Cancelar</button>
+        <button class="btn-primary" type="button" onclick="salvarPerfil()">
+          <i data-lucide="save"></i> Guardar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Toast de Notificação ────────────────────────────── -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ── Login Overlay ──────────────────────────────────── -->
+  <div class="login-overlay hidden" id="loginOverlay">
+    <div class="login-card">
+      <button class="modal-close login-close-btn" onclick="fecharLogin()" title="Voltar ao site">
+        <i data-lucide="x"></i>
+      </button>
+      <div class="login-brand">BORG Services</div>
+      <div class="login-tabs">
+        <button class="login-tab active" id="loginTabBtn" type="button" onclick="mostrarFormularioAuth('login')">Entrar</button>
+        <button class="login-tab" id="registerTabBtn" type="button" onclick="mostrarFormularioAuth('register')">Registar</button>
+      </div>
+      <div class="login-forms">
+        <!-- Login Form -->
+        <form id="loginForm" class="auth-form" onsubmit="event.preventDefault();loginUsuario();">
+          <div class="form-group">
+            <label for="login-identity">Email, Telefone ou Username</label>
+            <input type="text" id="login-identity" placeholder="exemplo@dominio.com" required />
+            <span class="field-note">Use o seu email, telefone ou username para entrar.</span>
+          </div>
+          <div class="form-group">
+            <label for="login-senha">Senha</label>
+            <input type="password" id="login-senha" placeholder="Senha" required />
+          </div>
+          <div class="form-group">
+            <label class="checkbox-inline">
+              <input type="checkbox" id="loginRemember" /> Lembrar de mim
+            </label>
+          </div>
+          <button class="btn-primary btn-block" type="submit">Entrar</button>
+          <p class="auth-note">Não tem conta? <button type="button" class="link-button" onclick="mostrarFormularioAuth('register')">Registar</button></p>
+        </form>
+        <!-- Register Form -->
+        <form id="registerForm" class="auth-form hidden" onsubmit="event.preventDefault();registrarUsuario();">
+          <div class="form-group">
+            <label for="reg-email">Email</label>
+            <input type="email" id="reg-email" placeholder="seu@email.com" required />
+          </div>
+          <div class="form-group">
+            <label for="reg-username">Username</label>
+            <input type="text" id="reg-username" placeholder="seu-username" required />
+            <span class="field-note">Escolha um username único para entrar.</span>
+          </div>
+          <div class="form-group">
+            <label for="reg-telefone">Telefone</label>
+            <input type="tel" id="reg-telefone" placeholder="9XX XXX XXX" required />
+          </div>
+          <div class="form-group">
+            <label for="reg-senha">Senha</label>
+            <input type="password" id="reg-senha" placeholder="Mínimo 6 caracteres" required />
+          </div>
+          <div class="form-group">
+            <label for="reg-confirmar-senha">Confirmar Senha</label>
+            <input type="password" id="reg-confirmar-senha" placeholder="Repita a senha" required />
+          </div>
+          <div class="form-group">
+            <label class="checkbox-inline">
+              <input type="checkbox" id="regRemember" /> Lembrar de mim
+            </label>
+          </div>
+          <button class="btn-primary btn-block" type="submit">Criar conta</button>
+          <p class="auth-note">Já tem conta? <button type="button" class="link-button" onclick="mostrarFormularioAuth('login')">Entrar</button></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>
