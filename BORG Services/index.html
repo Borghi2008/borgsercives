@@ -378,6 +378,11 @@
       </div>
     </section>
 
+    <!-- CTA fixo (mobile) — conversão directa sem ter de fazer scroll -->
+    <a href="#pub-contacto" class="pub-sticky-cta" onclick="smoothScroll('pub-contacto')">
+      <i data-lucide="message-circle"></i> Pedir Orçamento
+    </a>
+
     <!-- Footer -->
     <footer class="pub-footer">
       <div class="pub-container">
@@ -1092,18 +1097,12 @@
         <!-- Login Form -->
         <form id="loginForm" class="auth-form" onsubmit="event.preventDefault();loginUsuario();">
           <div class="form-group">
-            <label for="login-identity">Email, Telefone ou Username</label>
-            <input type="text" id="login-identity" placeholder="exemplo@dominio.com" required />
-            <span class="field-note">Use o seu email, telefone ou username para entrar.</span>
+            <label for="login-email">Email</label>
+            <input type="email" id="login-email" placeholder="exemplo@dominio.com" required autocomplete="username" />
           </div>
           <div class="form-group">
             <label for="login-senha">Senha</label>
-            <input type="password" id="login-senha" placeholder="Senha" required />
-          </div>
-          <div class="form-group">
-            <label class="checkbox-inline">
-              <input type="checkbox" id="loginRemember" /> Lembrar de mim
-            </label>
+            <input type="password" id="login-senha" placeholder="Senha" required autocomplete="current-password" />
           </div>
           <button class="btn-primary btn-block" type="submit">Entrar</button>
           <p class="auth-note">Não tem conta? <button type="button" class="link-button" onclick="mostrarFormularioAuth('register')">Registar</button></p>
@@ -1112,7 +1111,7 @@
         <form id="registerForm" class="auth-form hidden" onsubmit="event.preventDefault();registrarUsuario();">
           <div class="form-group">
             <label for="reg-email">Email</label>
-            <input type="email" id="reg-email" placeholder="seu@email.com" required />
+            <input type="email" id="reg-email" placeholder="seu@email.com" required autocomplete="username" />
           </div>
           <div class="form-group">
             <label for="reg-username">Username</label>
@@ -1125,16 +1124,11 @@
           </div>
           <div class="form-group">
             <label for="reg-senha">Senha</label>
-            <input type="password" id="reg-senha" placeholder="Mínimo 6 caracteres" required />
+            <input type="password" id="reg-senha" placeholder="Mínimo 6 caracteres" required autocomplete="new-password" />
           </div>
           <div class="form-group">
             <label for="reg-confirmar-senha">Confirmar Senha</label>
-            <input type="password" id="reg-confirmar-senha" placeholder="Repita a senha" required />
-          </div>
-          <div class="form-group">
-            <label class="checkbox-inline">
-              <input type="checkbox" id="regRemember" /> Lembrar de mim
-            </label>
+            <input type="password" id="reg-confirmar-senha" placeholder="Repita a senha" required autocomplete="new-password" />
           </div>
           <button class="btn-primary btn-block" type="submit">Criar conta</button>
           <p class="auth-note">Já tem conta? <button type="button" class="link-button" onclick="mostrarFormularioAuth('login')">Entrar</button></p>
