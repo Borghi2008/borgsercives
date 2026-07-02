@@ -18,15 +18,14 @@
    ========================================================== */
 
 /* ── 1. Supabase Config ───────────────────────────────────── */
+// Esta é a "anon/publishable key" — é NORMAL e seguro que apareça no
+// frontend, é assim que qualquer app Supabase funciona. A segurança
+// real vem das políticas RLS (ver schema_v2_seguranca.sql), não de
+// esconder esta chave. Nunca colocar aqui a "service_role key".
 
 const SUPABASE_URL = 'https://ivydplbnnpnvtwsfembg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_tjDl2WjIo7M49aqmbYgTeQ_U7HVs5SE';
-let sessionToken = localStorage.getItem('lg_sessao_token') || '';
-function criarClienteSupabase() {
-  return supabase.createClient(SUPABASE_URL, SUPABASE_KEY,
-    sessionToken ? { global: { headers: { 'x-borg-session': sessionToken } } } : {});
-}
-let sb = criarClienteSupabase();
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* ── 2. Estado Global ─────────────────────────────────────── */
 
@@ -41,8 +40,6 @@ let dados = {
   site_textos:       {},
   avaliacoes:        [],
   avaliacoes_chat:   [],
-  nomes_equipa:      [],
-  funcionarias_publicas: [],
 };
 
 let semanaOffset = 0;
@@ -102,13 +99,11 @@ function esconderLoading() {
 /* ── Carregar todos os dados do Supabase ──────────────────── */
 
 async function carregarDados() {
-  const [resC, resF, resS, resU, resNE, resFP, resP, resM, resST, resAv, resAvC, resMI] = await Promise.all([
+  const [resC, resF, resS, resU, resP, resM, resST, resAv, resAvC, resMI] = await Promise.all([
     sb.from('clientes').select('*').order('created_at', { ascending: true }),
     sb.from('funcionarias').select('*').order('created_at', { ascending: true }),
     sb.from('servicos').select('*').order('created_at', { ascending: true }),
-    sb.rpc('listar_usuarios'),
-    sb.rpc('nomes_equipa'),
-    sb.rpc('funcionarias_publicas'),
+    sb.from('perfis').select('*').order('created_at', { ascending: true }),
     sb.from('produtos').select('*').order('ordem', { ascending: true }),
     sb.from('contactos').select('*').order('created_at', { ascending: false }),
     sb.from('site_textos').select('*'),
@@ -120,8 +115,6 @@ async function carregarDados() {
   dados.clientes     = resC.data || [];
   dados.funcionarias = resF.data || [];
   dados.usuarios     = resU.data || [];
-  dados.nomes_equipa = resNE.data || [];
-  dados.funcionarias_publicas = resFP.data || [];
   dados.produtos     = resP.data || [];
   dados.mensagens    = resM.data || [];
   dados.avaliacoes   = resAv.data || [];
@@ -140,17 +133,14 @@ async function carregarDados() {
     semanaOffset:  s.semana_offset,
   }));
 
-  if (resC.error) throw new Error('Clientes: '     + resC.error.message);
-  if (resF.error) throw new Error('Funcionárias: ' + resF.error.message);
-  if (resS.error) throw new Error('Serviços: '     + resS.error.message);
-  if (resU.error) throw new Error(
-    'Falha ao chamar listar_usuarios(). ' +
-    'Corre o script schema.sql actualizado no Supabase SQL Editor. ' +
-    '(' + resU.error.message + ')'
-  );
-  // Falhas em tabelas/RPCs opcionais não bloqueiam o site
-  if (resNE.error)  console.warn('Nomes equipa: ',    resNE.error.message);
-  if (resFP.error)  console.warn('Funcionárias públicas: ', resFP.error.message);
+  // Clientes/Funcionárias/Serviços/Perfis exigem sessão iniciada (RLS).
+  // Para um visitante anónimo isto vem vazio de propósito — é o
+  // comportamento esperado, não um bug, por isso nunca bloqueia o site.
+  if (resC.error) console.warn('Clientes: ',     resC.error.message);
+  if (resF.error) console.warn('Funcionárias: ', resF.error.message);
+  if (resS.error) console.warn('Serviços: ',     resS.error.message);
+  if (resU.error) console.warn('Perfis: ',       resU.error.message);
+  // Falhas em tabelas opcionais não bloqueiam o site
   if (resP.error)   console.warn('Produtos: ',         resP.error.message);
   if (resM.error)   console.warn('Mensagens: ',        resM.error.message);
   if (resST.error)  console.warn('Site textos: ',      resST.error.message);
@@ -1449,37 +1439,23 @@ function fecharLogin() {
 }
 
 async function loginUsuario() {
-  const identity = document.getElementById('login-identity').value.trim();
-  const senha    = document.getElementById('login-senha').value;
-  const remember = document.getElementById('loginRemember').checked;
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const senha = document.getElementById('login-senha').value;
 
-  const { data: usuario, error } = await sb.rpc('login_usuario', { p_identity: identity, p_senha: senha });
-  if (error) { mostrarToast('Erro ao entrar: ' + error.message, 'error'); return; }
-  if (!usuario) { mostrarToast('Credenciais inválidas.', 'error'); return; }
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: senha });
+  if (error) { mostrarToast('Email ou senha incorretos.', 'error'); return; }
 
-  sessionToken = usuario.token;
-  sb = criarClienteSupabase();
-  authUsuario  = usuario;
-  atualizarUsuarioLogado();
-  atualizarInterface();
-  if (remember) localStorage.setItem('lg_sessao_token', sessionToken);
-  else          localStorage.removeItem('lg_sessao_token');
-  fecharLogin();
+  await aplicarSessao(data.session);
   await carregarDados();
+  aplicarTextosSite();
+  renderPublicProdutos();
+  renderPublicAvaliacoes();
+  atualizarStatsPublicas();
   atualizarInterface();
+  safeCreateIcons();
+  fecharLogin();
   // Fica no site público — o utilizador pode clicar "Painel" quando quiser
-  mostrarToast(`Bem-vindo, ${usuario.nome}!`, 'success');
-}
-
-function traduzirErroRegisto(msg) {
-  const mapa = {
-    username_obrigatorio: 'O username é obrigatório.',
-    senha_curta:          'A senha deve ter pelo menos 6 caracteres.',
-    username_existe:      'Este username já está registado.',
-    email_existe:         'Este email já está registado.',
-    telefone_existe:      'Este telefone já está registado.',
-  };
-  return mapa[msg] || msg;
+  mostrarToast(`Bem-vindo${authUsuario?.nome ? ', ' + authUsuario.nome : ''}!`, 'success');
 }
 
 async function registrarUsuario() {
@@ -1488,57 +1464,73 @@ async function registrarUsuario() {
   const telefone  = document.getElementById('reg-telefone').value.trim();
   const senha     = document.getElementById('reg-senha').value;
   const confirmar = document.getElementById('reg-confirmar-senha').value;
-  const remember  = document.getElementById('regRemember').checked;
 
   if (!username)           { mostrarToast('O username é obrigatório.', 'error'); return; }
   if (senha.length < 6)    { mostrarToast('A senha deve ter pelo menos 6 caracteres.', 'error'); return; }
   if (senha !== confirmar) { mostrarToast('As senhas não coincidem.', 'error'); return; }
 
-  const { data: usuario, error } = await sb.rpc('registrar_usuario',
-    { p_username: username, p_email: email, p_telefone: telefone, p_senha: senha });
-  if (error) { mostrarToast('Erro ao criar conta: ' + traduzirErroRegisto(error.message), 'error'); return; }
+  const { data, error } = await sb.auth.signUp({
+    email,
+    password: senha,
+    options: { data: { nome: username, username, telefone } },
+  });
 
-  sessionToken = usuario.token;
-  sb = criarClienteSupabase();
-  authUsuario  = usuario;
-  if (remember) localStorage.setItem('lg_sessao_token', sessionToken);
-  else          localStorage.removeItem('lg_sessao_token');
+  if (error) {
+    const msg = error.message || '';
+    if (/registered|exists/i.test(msg))     mostrarToast('Este email já está registado.', 'error');
+    else if (/username/i.test(msg))         mostrarToast('Este username já está registado.', 'error');
+    else if (/telefone/i.test(msg))         mostrarToast('Este telefone já está registado.', 'error');
+    else                                     mostrarToast('Erro ao criar conta: ' + msg, 'error');
+    return;
+  }
 
-  atualizarUsuarioLogado();
-  atualizarInterface();
-  fecharLogin();
+  if (!data.session) {
+    // "Confirm email" está ativo nas definições de Auth do Supabase —
+    // a conta foi criada mas só entra depois de confirmar o email.
+    mostrarToast('Conta criada! Verifique o seu email para confirmar antes de entrar.', 'success');
+    fecharLogin();
+    return;
+  }
+
+  await aplicarSessao(data.session);
   await carregarDados();
+  aplicarTextosSite();
+  renderPublicProdutos();
+  renderPublicAvaliacoes();
+  atualizarStatsPublicas();
   atualizarInterface();
+  safeCreateIcons();
+  fecharLogin();
   // Fica no site público — o utilizador pode clicar "Painel" quando quiser
   mostrarToast('Conta registada com sucesso!', 'success');
 }
 
-async function restaurarSessao() {
-  if (!sessionToken) { authUsuario = null; return; }
-  const { data: usuario, error } = await sb.rpc('sessao_atual');
-  if (error || !usuario) {
-    sessionToken = '';
-    localStorage.removeItem('lg_sessao_token');
-    sb = criarClienteSupabase();
+// Aplica uma sessão do Supabase Auth ao estado local (authUsuario),
+// procurando o perfil correspondente na tabela "perfis".
+async function aplicarSessao(session) {
+  if (session && session.user) {
+    const { data: perfil } = await sb.from('perfis').select('*').eq('id', session.user.id).maybeSingle();
+    authUsuario = perfil || null;
+  } else {
     authUsuario = null;
-    return;
   }
-  authUsuario = usuario;
-}
-
-function iniciarAuth() {
   atualizarUsuarioLogado();
-  atualizarInterface();
-  if (!estaAutenticado()) return;
-  fecharLogin();
-
-  // Apenas Gestor+ entra automaticamente no painel;
-  // Colaboradores ficam no site público até clicar "Painel" manualmente.
-  const nivelUsuario = papelNivel(authUsuario.papel);
-  if (nivelUsuario <= papelNivel('Gestor')) {
-    irParaApp();
-  }
 }
+
+// Restaura a sessão ao carregar a página (equivalente ao antigo iniciarAuth).
+async function restaurarSessaoInicial() {
+  const { data: { session } } = await sb.auth.getSession();
+  await aplicarSessao(session);
+}
+
+// Mantém a app sincronizada se a sessão expirar/for terminada noutro separador.
+sb.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_OUT') {
+    authUsuario = null;
+    atualizarUsuarioLogado();
+    atualizarInterface();
+  }
+});
 
 function atualizarInterface() {
   atualizarUsuarioLogado();
@@ -1672,13 +1664,16 @@ function abrirModalPerfil() {
 }
 
 async function logoutUsuario() {
-  await sb.rpc('logout_usuario');
-  sessionToken = '';
-  localStorage.removeItem('lg_sessao_token');
-  sb = criarClienteSupabase();
+  await sb.auth.signOut();
   authUsuario = null;
+  await carregarDados(); // recarrega já com a visibilidade de visitante anónimo
+  aplicarTextosSite();
+  renderPublicProdutos();
+  renderPublicAvaliacoes();
+  atualizarStatsPublicas();
   atualizarUsuarioLogado();
   atualizarInterface();
+  safeCreateIcons();
   fecharModal('modal-perfil');
   voltarParaSite(); // volta ao site público após logout
   mostrarToast('Sessão encerrada.', 'success');
@@ -1727,18 +1722,22 @@ async function salvarPerfil() {
     mostrarToast('Preencha todos os campos obrigatórios.', 'error');
     return;
   }
-  if (dados.usuarios.some(u => u.email === email && u.id !== authUsuario.id)) {
-    mostrarToast('Este email já está registado.', 'error');
-    return;
-  }
-  if (dados.usuarios.some(u => u.telefone === telefone && u.id !== authUsuario.id)) {
-    mostrarToast('Este telefone já está registado.', 'error');
-    return;
+
+  // Mudar o email de login exige confirmação pelo Supabase Auth.
+  if (email !== authUsuario.email) {
+    const { error: authErr } = await sb.auth.updateUser({ email });
+    if (authErr) { mostrarToast('Erro ao atualizar email: ' + authErr.message, 'error'); return; }
+    mostrarToast('Verifique o novo email para confirmar a alteração.', 'success');
   }
 
-  const { error } = await sb.rpc('atualizar_perfil_usuario',
-    { p_nome: nome, p_email: email, p_telefone: telefone, p_foto: foto });
-  if (error) { mostrarToast('Erro ao guardar perfil: ' + traduzirErroRegisto(error.message), 'error'); return; }
+  const { error } = await sb.from('perfis').update({ nome, email, telefone, foto }).eq('id', authUsuario.id);
+  if (error) {
+    const msg = /duplicate key/i.test(error.message)
+      ? 'Este telefone já está associado a outra conta.'
+      : 'Erro ao guardar perfil.';
+    mostrarToast(msg, 'error');
+    return;
+  }
 
   authUsuario.nome     = nome;
   authUsuario.email    = email;
@@ -1827,8 +1826,8 @@ async function alterarPapelUsuario(id, novoPapel) {
     return;
   }
 
-  const { error } = await sb.rpc('alterar_papel_usuario', { p_usuario_id: id, p_novo_papel: novoPapel });
-  if (error) { mostrarToast('Erro ao atualizar cargo.', 'error'); return; }
+  const { error } = await sb.from('perfis').update({ papel: novoPapel }).eq('id', id);
+  if (error) { mostrarToast('Erro ao atualizar cargo: ' + error.message, 'error'); return; }
 
   usuario.papel = novoPapel;
   if (authUsuario && authUsuario.id === id) {
@@ -1979,8 +1978,8 @@ async function enviarContacto() {
 
 // Abre o login a partir do site público (botão "Entrar")
 function abrirLoginPublico() {
-  if (!dados.nomes_equipa.length) mostrarFormularioAuth('register');
-  else                            mostrarFormularioAuth('login');
+  if (!dados.usuarios.length) mostrarFormularioAuth('register');
+  else                        mostrarFormularioAuth('login');
   abrirLogin();
 }
 
@@ -2139,7 +2138,7 @@ function carregarChatAvaliacao(avId) {
     const hora = m.created_at
       ? new Date(m.created_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
       : '';
-    const isEquipa = dados.nomes_equipa.some(u => u.nome === m.autor_nome);
+    const isEquipa = dados.usuarios.some(u => u.nome === m.autor_nome);
     return `
       <div class="chat-msg ${isEquipa ? 'equipa' : 'cliente'}">
         <div class="chat-msg-autor">${m.autor_nome}</div>
@@ -2226,7 +2225,7 @@ function renderPublicAvaliacoes() {
     return;
   }
   container.innerHTML = visíveis.map(av => {
-    const func = dados.funcionarias_publicas.find(f => f.id === av.funcionaria_id);
+    const func = dados.funcionarias.find(f => f.id === av.funcionaria_id);
     const estrelas = renderStarsHtml(av.estrelas || 0);
     const data = av.created_at
       ? new Date(av.created_at).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -2276,8 +2275,11 @@ async function carregarAvaliacoesApp() {
 document.addEventListener('DOMContentLoaded', async () => {
   mostrarLoading();
 
+  // Restaura a sessão do Supabase Auth ANTES de carregar dados, para que
+  // os pedidos já saiam autenticados e a RLS devolva o que é esperado.
+  await restaurarSessaoInicial();
+
   try {
-    await restaurarSessao();
     await carregarDados();
   } catch (err) {
     console.error('Erro ao carregar dados:', err);
@@ -2291,11 +2293,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   atualizarBadgeMensagens();
   renderPublicAvaliacoes();
 
-  // Poblar o select de funcionárias no formulário público de avaliação
+  // Popula o select de funcionárias no formulário público de avaliação.
+  // Usa a view pública "funcionarias_publicas" (só id + nome) — funciona
+  // mesmo para visitantes sem sessão, sem expor contacto/cargo/etc.
   const selFuncAv = document.getElementById('av-pub-funcionaria');
   if (selFuncAv) {
+    const { data: funcPublicas } = await sb.from('funcionarias_publicas').select('*');
     selFuncAv.innerHTML = '<option value="">Qualquer funcionária/o</option>' +
-      dados.funcionarias_publicas.map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
+      (funcPublicas || []).map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
   }
 
   // Inicializar estrelas interativas no formulário público
@@ -2306,8 +2311,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   safeCreateIcons();
 
-  // iniciarAuth aplica a UI da sessão já restaurada (e a página correcta via lg_pagina_ativa).
-  iniciarAuth();
+  // Gestor+ entra automaticamente no painel ao voltar com sessão activa;
+  // Colaboradores ficam no site público até clicar "Painel" manualmente.
+  if (authUsuario) {
+    const nivelUsuario = papelNivel(authUsuario.papel);
+    if (nivelUsuario <= papelNivel('Gestor')) irParaApp();
+  }
   atualizarInterface();
   esconderLoading();
 
