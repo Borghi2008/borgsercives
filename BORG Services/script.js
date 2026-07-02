@@ -21,7 +21,12 @@
 
 const SUPABASE_URL = 'https://ivydplbnnpnvtwsfembg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_tjDl2WjIo7M49aqmbYgTeQ_U7HVs5SE';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let sessionToken = localStorage.getItem('lg_sessao_token') || '';
+function criarClienteSupabase() {
+  return supabase.createClient(SUPABASE_URL, SUPABASE_KEY,
+    sessionToken ? { global: { headers: { 'x-borg-session': sessionToken } } } : {});
+}
+let sb = criarClienteSupabase();
 
 /* ── 2. Estado Global ─────────────────────────────────────── */
 
@@ -36,6 +41,8 @@ let dados = {
   site_textos:       {},
   avaliacoes:        [],
   avaliacoes_chat:   [],
+  nomes_equipa:      [],
+  funcionarias_publicas: [],
 };
 
 let semanaOffset = 0;
@@ -95,11 +102,13 @@ function esconderLoading() {
 /* ── Carregar todos os dados do Supabase ──────────────────── */
 
 async function carregarDados() {
-  const [resC, resF, resS, resU, resP, resM, resST, resAv, resAvC, resMI] = await Promise.all([
+  const [resC, resF, resS, resU, resNE, resFP, resP, resM, resST, resAv, resAvC, resMI] = await Promise.all([
     sb.from('clientes').select('*').order('created_at', { ascending: true }),
     sb.from('funcionarias').select('*').order('created_at', { ascending: true }),
     sb.from('servicos').select('*').order('created_at', { ascending: true }),
-    sb.from('usuarios').select('*').order('created_at', { ascending: true }),
+    sb.rpc('listar_usuarios'),
+    sb.rpc('nomes_equipa'),
+    sb.rpc('funcionarias_publicas'),
     sb.from('produtos').select('*').order('ordem', { ascending: true }),
     sb.from('contactos').select('*').order('created_at', { ascending: false }),
     sb.from('site_textos').select('*'),
@@ -111,6 +120,8 @@ async function carregarDados() {
   dados.clientes     = resC.data || [];
   dados.funcionarias = resF.data || [];
   dados.usuarios     = resU.data || [];
+  dados.nomes_equipa = resNE.data || [];
+  dados.funcionarias_publicas = resFP.data || [];
   dados.produtos     = resP.data || [];
   dados.mensagens    = resM.data || [];
   dados.avaliacoes   = resAv.data || [];
@@ -133,11 +144,13 @@ async function carregarDados() {
   if (resF.error) throw new Error('Funcionárias: ' + resF.error.message);
   if (resS.error) throw new Error('Serviços: '     + resS.error.message);
   if (resU.error) throw new Error(
-    'Permissão negada na tabela "usuarios". ' +
-    'Corre o script schema.sql no Supabase SQL Editor. ' +
+    'Falha ao chamar listar_usuarios(). ' +
+    'Corre o script schema.sql actualizado no Supabase SQL Editor. ' +
     '(' + resU.error.message + ')'
   );
-  // Falhas em tabelas opcionais não bloqueiam o site
+  // Falhas em tabelas/RPCs opcionais não bloqueiam o site
+  if (resNE.error)  console.warn('Nomes equipa: ',    resNE.error.message);
+  if (resFP.error)  console.warn('Funcionárias públicas: ', resFP.error.message);
   if (resP.error)   console.warn('Produtos: ',         resP.error.message);
   if (resM.error)   console.warn('Mensagens: ',        resM.error.message);
   if (resST.error)  console.warn('Site textos: ',      resST.error.message);
@@ -1435,32 +1448,38 @@ function fecharLogin() {
   document.getElementById('loginOverlay').classList.add('hidden');
 }
 
-function loginUsuario() {
-  const identity   = document.getElementById('login-identity').value.trim();
-  const senha      = document.getElementById('login-senha').value;
-  const remember   = document.getElementById('loginRemember').checked;
-  const normalized = identity.toLowerCase();
-  const isEmail    = normalized.includes('@');
-  const isPhone    = /^[0-9+ ]+$/.test(identity);
+async function loginUsuario() {
+  const identity = document.getElementById('login-identity').value.trim();
+  const senha    = document.getElementById('login-senha').value;
+  const remember = document.getElementById('loginRemember').checked;
 
-  const usuario = dados.usuarios.find(u => {
-    const username = (u.username || '').toLowerCase();
-    if (isEmail) return u.email === normalized;
-    if (isPhone) return u.telefone === identity;
-    return username === normalized;
-  });
+  const { data: usuario, error } = await sb.rpc('login_usuario', { p_identity: identity, p_senha: senha });
+  if (error) { mostrarToast('Erro ao entrar: ' + error.message, 'error'); return; }
+  if (!usuario) { mostrarToast('Credenciais inválidas.', 'error'); return; }
 
-  if (!usuario) { mostrarToast('Email, telefone ou username não encontrados.', 'error'); return; }
-  if (usuario.senha !== senha) { mostrarToast('Senha incorreta.', 'error'); return; }
-
-  authUsuario = usuario;
+  sessionToken = usuario.token;
+  sb = criarClienteSupabase();
+  authUsuario  = usuario;
   atualizarUsuarioLogado();
   atualizarInterface();
-  if (remember) localStorage.setItem('lg_usuario_logado', usuario.id);
-  else          localStorage.removeItem('lg_usuario_logado');
+  if (remember) localStorage.setItem('lg_sessao_token', sessionToken);
+  else          localStorage.removeItem('lg_sessao_token');
   fecharLogin();
+  await carregarDados();
+  atualizarInterface();
   // Fica no site público — o utilizador pode clicar "Painel" quando quiser
   mostrarToast(`Bem-vindo, ${usuario.nome}!`, 'success');
+}
+
+function traduzirErroRegisto(msg) {
+  const mapa = {
+    username_obrigatorio: 'O username é obrigatório.',
+    senha_curta:          'A senha deve ter pelo menos 6 caracteres.',
+    username_existe:      'Este username já está registado.',
+    email_existe:         'Este email já está registado.',
+    telefone_existe:      'Este telefone já está registado.',
+  };
+  return mapa[msg] || msg;
 }
 
 async function registrarUsuario() {
@@ -1474,75 +1493,50 @@ async function registrarUsuario() {
   if (!username)           { mostrarToast('O username é obrigatório.', 'error'); return; }
   if (senha.length < 6)    { mostrarToast('A senha deve ter pelo menos 6 caracteres.', 'error'); return; }
   if (senha !== confirmar) { mostrarToast('As senhas não coincidem.', 'error'); return; }
-  if (dados.usuarios.some(u => u.email    === email))    { mostrarToast('Este email já está registado.', 'error'); return; }
-  if (dados.usuarios.some(u => u.username === username)) { mostrarToast('Este username já está registado.', 'error'); return; }
-  if (dados.usuarios.some(u => u.telefone === telefone)) { mostrarToast('Este telefone já está registado.', 'error'); return; }
 
-  const newId   = gerarId();
-  const usuario = {
-    id:       newId,
-    nome:     username.replace(/[^a-zA-Z0-9]/g, '').replace(/^$/, 'User'),
-    username,
-    email,
-    telefone,
-    senha,
-    foto:     null,
-    papel:    dados.usuarios.length === 0 ? 'Administrador' : 'Colaborador',
-  };
+  const { data: usuario, error } = await sb.rpc('registrar_usuario',
+    { p_username: username, p_email: email, p_telefone: telefone, p_senha: senha });
+  if (error) { mostrarToast('Erro ao criar conta: ' + traduzirErroRegisto(error.message), 'error'); return; }
 
-  const { error } = await sb.from('usuarios').insert(usuario);
-  if (error) { mostrarToast('Erro ao criar conta: ' + error.message, 'error'); return; }
-
-  dados.usuarios.push(usuario);
-  authUsuario = usuario;
-  if (remember) localStorage.setItem('lg_usuario_logado', usuario.id);
-  else          localStorage.removeItem('lg_usuario_logado');
+  sessionToken = usuario.token;
+  sb = criarClienteSupabase();
+  authUsuario  = usuario;
+  if (remember) localStorage.setItem('lg_sessao_token', sessionToken);
+  else          localStorage.removeItem('lg_sessao_token');
 
   atualizarUsuarioLogado();
   atualizarInterface();
   fecharLogin();
+  await carregarDados();
+  atualizarInterface();
   // Fica no site público — o utilizador pode clicar "Painel" quando quiser
   mostrarToast('Conta registada com sucesso!', 'success');
 }
 
-function iniciarAuth() {
-  const rememberedId = localStorage.getItem('lg_usuario_logado');
-  if (rememberedId) {
-    const usuario = dados.usuarios.find(u => u.id === rememberedId);
-    if (usuario) {
-      authUsuario = usuario;
-      atualizarUsuarioLogado();
-      atualizarInterface();
-      fecharLogin();
-
-      // Apenas Gestor+ entra automaticamente no painel;
-      // Colaboradores ficam no site público até clicar "Painel" manualmente.
-      const nivelUsuario = papelNivel(usuario.papel);
-      if (nivelUsuario <= papelNivel('Gestor')) {
-        irParaApp();
-      }
-      return;
-    }
-    localStorage.removeItem('lg_usuario_logado');
+async function restaurarSessao() {
+  if (!sessionToken) { authUsuario = null; return; }
+  const { data: usuario, error } = await sb.rpc('sessao_atual');
+  if (error || !usuario) {
+    sessionToken = '';
+    localStorage.removeItem('lg_sessao_token');
+    sb = criarClienteSupabase();
+    authUsuario = null;
+    return;
   }
-
-  // Sem sessão guardada — fica no site público, sem forçar login
-  authUsuario = null;
-  atualizarUsuarioLogado();
-  atualizarInterface();
+  authUsuario = usuario;
 }
 
-/* ── Migração automática de papéis legados ────────────────── */
-// Converte 'Administradora' → 'Administrador' na BD para utilizadores existentes.
-async function migrarPapeisLegados() {
-  const legados = dados.usuarios.filter(u => normalizarPapel(u.papel) !== u.papel);
-  for (const u of legados) {
-    const novoPapel = normalizarPapel(u.papel);
-    const { error } = await sb.from('usuarios').update({ papel: novoPapel }).eq('id', u.id);
-    if (!error) {
-      u.papel = novoPapel;
-      if (authUsuario && authUsuario.id === u.id) authUsuario.papel = novoPapel;
-    }
+function iniciarAuth() {
+  atualizarUsuarioLogado();
+  atualizarInterface();
+  if (!estaAutenticado()) return;
+  fecharLogin();
+
+  // Apenas Gestor+ entra automaticamente no painel;
+  // Colaboradores ficam no site público até clicar "Painel" manualmente.
+  const nivelUsuario = papelNivel(authUsuario.papel);
+  if (nivelUsuario <= papelNivel('Gestor')) {
+    irParaApp();
   }
 }
 
@@ -1634,8 +1628,7 @@ function atualizarUsuarioLogado() {
 }
 
 function estaAutenticado() {
-  if (!authUsuario || !authUsuario.id) return false;
-  return dados.usuarios.some(u => u.id === authUsuario.id);
+  return !!(authUsuario && authUsuario.id);
 }
 
 function usuarioEhColaborador() {
@@ -1678,9 +1671,12 @@ function abrirModalPerfil() {
   abrirModal('modal-perfil');
 }
 
-function logoutUsuario() {
+async function logoutUsuario() {
+  await sb.rpc('logout_usuario');
+  sessionToken = '';
+  localStorage.removeItem('lg_sessao_token');
+  sb = criarClienteSupabase();
   authUsuario = null;
-  localStorage.removeItem('lg_usuario_logado');
   atualizarUsuarioLogado();
   atualizarInterface();
   fecharModal('modal-perfil');
@@ -1740,8 +1736,9 @@ async function salvarPerfil() {
     return;
   }
 
-  const { error } = await sb.from('usuarios').update({ nome, email, telefone, foto }).eq('id', authUsuario.id);
-  if (error) { mostrarToast('Erro ao guardar perfil.', 'error'); return; }
+  const { error } = await sb.rpc('atualizar_perfil_usuario',
+    { p_nome: nome, p_email: email, p_telefone: telefone, p_foto: foto });
+  if (error) { mostrarToast('Erro ao guardar perfil: ' + traduzirErroRegisto(error.message), 'error'); return; }
 
   authUsuario.nome     = nome;
   authUsuario.email    = email;
@@ -1830,7 +1827,7 @@ async function alterarPapelUsuario(id, novoPapel) {
     return;
   }
 
-  const { error } = await sb.from('usuarios').update({ papel: novoPapel }).eq('id', id);
+  const { error } = await sb.rpc('alterar_papel_usuario', { p_usuario_id: id, p_novo_papel: novoPapel });
   if (error) { mostrarToast('Erro ao atualizar cargo.', 'error'); return; }
 
   usuario.papel = novoPapel;
@@ -1982,8 +1979,8 @@ async function enviarContacto() {
 
 // Abre o login a partir do site público (botão "Entrar")
 function abrirLoginPublico() {
-  if (!dados.usuarios.length) mostrarFormularioAuth('register');
-  else                        mostrarFormularioAuth('login');
+  if (!dados.nomes_equipa.length) mostrarFormularioAuth('register');
+  else                            mostrarFormularioAuth('login');
   abrirLogin();
 }
 
@@ -2142,7 +2139,7 @@ function carregarChatAvaliacao(avId) {
     const hora = m.created_at
       ? new Date(m.created_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
       : '';
-    const isEquipa = dados.usuarios.some(u => u.nome === m.autor_nome);
+    const isEquipa = dados.nomes_equipa.some(u => u.nome === m.autor_nome);
     return `
       <div class="chat-msg ${isEquipa ? 'equipa' : 'cliente'}">
         <div class="chat-msg-autor">${m.autor_nome}</div>
@@ -2229,7 +2226,7 @@ function renderPublicAvaliacoes() {
     return;
   }
   container.innerHTML = visíveis.map(av => {
-    const func = dados.funcionarias.find(f => f.id === av.funcionaria_id);
+    const func = dados.funcionarias_publicas.find(f => f.id === av.funcionaria_id);
     const estrelas = renderStarsHtml(av.estrelas || 0);
     const data = av.created_at
       ? new Date(av.created_at).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -2280,9 +2277,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   mostrarLoading();
 
   try {
+    await restaurarSessao();
     await carregarDados();
-    // Migrar papéis antigos silenciosamente (ex: 'Administradora' → 'Administrador')
-    await migrarPapeisLegados();
   } catch (err) {
     console.error('Erro ao carregar dados:', err);
     mostrarToast('Erro Supabase: ' + err.message, 'error');
@@ -2299,7 +2295,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const selFuncAv = document.getElementById('av-pub-funcionaria');
   if (selFuncAv) {
     selFuncAv.innerHTML = '<option value="">Qualquer funcionária/o</option>' +
-      dados.funcionarias.map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
+      dados.funcionarias_publicas.map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
   }
 
   // Inicializar estrelas interativas no formulário público
@@ -2310,7 +2306,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   safeCreateIcons();
 
-  // iniciarAuth restaura a sessão guardada (e a página correcta via lg_pagina_ativa).
+  // iniciarAuth aplica a UI da sessão já restaurada (e a página correcta via lg_pagina_ativa).
   iniciarAuth();
   atualizarInterface();
   esconderLoading();
