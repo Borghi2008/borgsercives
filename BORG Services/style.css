@@ -1323,3 +1323,24 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   transition: border-color .15s;
 }
 .av-chat-input-row input:focus { border-color: var(--color-accent); }
+
+/* ── ETAPA 22: CTA fixo mobile ────────────────────────────── */
+.pub-sticky-cta { display: none; }
+
+@media (max-width: 768px) {
+  .pub-sticky-cta {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    position: fixed; left: 12px; right: 12px;
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    z-index: 500;
+    padding: 14px 20px;
+    background: linear-gradient(135deg,#4FB6FF,#2F7FF0);
+    color: #fff; text-decoration: none;
+    border-radius: 999px;
+    font-size: 14px; font-weight: 700;
+    box-shadow: 0 10px 30px rgba(47,127,240,.45);
+  }
+  .pub-sticky-cta svg { width: 17px; height: 17px; }
+  /* Evita que o CTA fixo tape o fim do formulário de contacto */
+  #pub-contacto { padding-bottom: 96px; }
+}
