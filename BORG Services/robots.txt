@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://borgservices.co.uk/sitemap.xml
