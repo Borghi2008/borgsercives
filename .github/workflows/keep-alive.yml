@@ -1,0 +1,23 @@
+name: Supabase Keep-Alive
+
+# Evita que o projeto gratuito da Supabase (Borg Services) seja pausado
+# por 7 dias de inatividade — faz um pedido simples à API duas vezes
+# por semana, o suficiente para reiniciar o temporizador de inatividade.
+
+on:
+  schedule:
+    - cron: '0 9 * * 1,4'   # todas as segundas e quintas, às 09:00 UTC
+  workflow_dispatch:          # permite correr manualmente a partir do separador "Actions" no GitHub
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pedido à API da Supabase
+        run: |
+          curl -sf -o /dev/null \
+            "https://ivydplbnnpnvtwsfembg.supabase.co/rest/v1/" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+          && echo "OK: pedido enviado com sucesso, projeto continua ativo" \
+          || (echo "Falhou o pedido à Supabase — verifica o secret SUPABASE_ANON_KEY" && exit 1)
