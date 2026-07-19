@@ -1797,7 +1797,7 @@ function renderConfiguracao() {
         <td>${u.email}</td>
         <td>${u.telefone || '—'}</td>
         <td>
-          <select id="user-role-${u.id}" onchange="alterarPapelUsuario('${u.id}', this.value)">
+          <select id="user-role-${u.id}">
             ${options.join('')}
           </select>
         </td>
