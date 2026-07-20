@@ -1031,6 +1031,83 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 .inline-edit-cancel.dark { background: var(--color-bg); color: var(--color-muted); border-color: var(--color-border); }
 
+/* ── ETAPA 19: Área do Cliente ────────────────────────────── */
+
+.reg-tipo-toggle {
+  display: flex; gap: 8px; background: var(--color-bg);
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  padding: 4px;
+}
+.reg-tipo-option {
+  flex: 1; text-align: center; padding: 8px 10px;
+  border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;
+  color: var(--color-muted); transition: .15s;
+}
+.reg-tipo-option input { display: none; }
+.reg-tipo-option:has(input:checked) {
+  background: var(--color-accent); color: #fff;
+}
+
+#client-container {
+  min-height: 100vh; display: flex; flex-direction: column; background: var(--color-bg);
+}
+#client-container.app-hidden { display: none; }
+
+.client-header {
+  height: var(--topbar-h); background: var(--color-sidebar-bg); color: #fff;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; gap: 16px; flex-wrap: wrap;
+}
+.client-header-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+.client-header-brand img { height: 28px; width: 28px; border-radius: 6px; }
+.client-header-user { color: var(--color-sidebar-text); font-size: 14px; }
+.client-header-user strong { color: #fff; }
+.client-header-actions { display: flex; gap: 8px; }
+
+.client-nav {
+  display: flex; gap: 4px; background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border); padding: 0 24px;
+}
+.client-nav-item {
+  display: flex; align-items: center; gap: 6px; padding: 14px 16px;
+  border: none; background: none; cursor: pointer; font-weight: 600; font-size: 14px;
+  color: var(--color-muted); border-bottom: 2px solid transparent;
+}
+.client-nav-item svg { width: 16px; height: 16px; }
+.client-nav-item.active { color: var(--color-accent); border-bottom-color: var(--color-accent); }
+
+.client-main { flex: 1; padding: 24px; max-width: 720px; width: 100%; margin: 0 auto; }
+.client-page { display: none; }
+.client-page.active { display: block; }
+.client-page-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; gap: 12px; flex-wrap: wrap;
+}
+.client-page-header h2 { font-size: 19px; }
+
+.client-chat-msgs { min-height: 320px; max-height: 55vh; }
+
+.cliente-servicos-lista { display: flex; flex-direction: column; gap: 10px; }
+.cliente-servico-card {
+  display: flex; align-items: center; gap: 16px;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); padding: 14px 18px; box-shadow: var(--shadow-sm);
+}
+.cliente-servico-dia {
+  width: 44px; height: 44px; border-radius: var(--radius-sm);
+  background: var(--color-accent); color: #fff; font-weight: 700; font-size: 13px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.cliente-servico-hora { font-weight: 600; }
+.cliente-servico-func { color: var(--color-muted); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .client-header { padding: 0 14px; }
+  .client-header-user { display: none; }
+  .client-main { padding: 16px; }
+  .client-nav { padding: 0 8px; overflow-x: auto; }
+}
+
 /* ── ETAPA 18: Responsivo ────────────────────────────────── */
 @media (max-width: 900px) {
   .pub-hero { flex-direction: column; text-align: center; min-height: auto; padding: 100px 24px 60px; }
