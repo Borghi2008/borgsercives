@@ -40,11 +40,17 @@ let dados = {
   site_textos:       {},
   avaliacoes:        [],
   avaliacoes_chat:   [],
+  cliente_servicos:   [],  // Área do Cliente: só os serviços do cliente autenticado
+  cliente_mensagens:  [],  // Área do Cliente: chat com a empresa
+  funcionarias_pub:   [],  // Área do Cliente: cache de funcionarias_publicas (id+nome, p/ mostrar "quem vai")
+  mensagens_clientes: [],  // Painel da equipa: todas as conversas com clientes (aba "Chat com Clientes")
 };
 
 let semanaOffset = 0;
 let authUsuario  = null;
+let authCliente  = null;   // linha de "clientes" ligada à sessão atual, se for uma conta de cliente
 let acaoPendente = null;
+let chatClienteAlvoId = null; // id do cliente cuja conversa a equipa tem aberta (aba "Chat com Clientes")
 
 // Mesma hierarquia usada nas Funcionárias (NIVEIS_FUNCIONARIA), para não haver
 // confusão entre o "cargo" da funcionária (rótulo) e o "papel" do usuário (permissões).
@@ -99,7 +105,7 @@ function esconderLoading() {
 /* ── Carregar todos os dados do Supabase ──────────────────── */
 
 async function carregarDados() {
-  const [resC, resF, resS, resU, resP, resM, resST, resAv, resAvC, resMI] = await Promise.all([
+  const [resC, resF, resS, resU, resP, resM, resST, resAv, resAvC, resMI, resMC] = await Promise.all([
     sb.from('clientes').select('*').order('created_at', { ascending: true }),
     sb.from('funcionarias').select('*').order('created_at', { ascending: true }),
     sb.from('servicos').select('*').order('created_at', { ascending: true }),
@@ -110,6 +116,7 @@ async function carregarDados() {
     sb.from('avaliacoes').select('*').order('created_at', { ascending: false }),
     sb.from('avaliacoes_chat').select('*').order('created_at', { ascending: true }),
     sb.from('mensagens_internas').select('*').order('created_at', { ascending: true }),
+    sb.from('mensagens_clientes').select('*').order('created_at', { ascending: true }),
   ]);
 
   dados.clientes     = resC.data || [];
@@ -120,6 +127,7 @@ async function carregarDados() {
   dados.avaliacoes   = resAv.data || [];
   dados.avaliacoes_chat    = resAvC.data || [];
   dados.mensagens_internas = resMI.data || [];
+  dados.mensagens_clientes = resMC.data || [];
 
   // site_textos: array → mapa {chave: valor}
   dados.site_textos = {};
@@ -997,9 +1005,12 @@ function mudarTabMensagens(tab) {
   });
   const elClientes = document.getElementById('mensagens-tab-clientes');
   const elEquipa   = document.getElementById('mensagens-tab-equipa');
+  const elPortal   = document.getElementById('mensagens-tab-portal');
   if (elClientes) elClientes.style.display = tab === 'clientes' ? '' : 'none';
   if (elEquipa)   elEquipa.style.display   = tab === 'equipa'   ? '' : 'none';
+  if (elPortal)   elPortal.style.display   = tab === 'portal'   ? '' : 'none';
   if (tab === 'equipa' && chatInternoAlvoId) abrirChatInterno(chatInternoAlvoId);
+  if (tab === 'portal') { renderChatClientesLista(); if (chatClienteAlvoId) abrirChatCliente(chatClienteAlvoId); }
 }
 
 function renderMensagensClientes() {
@@ -1047,7 +1058,8 @@ function atualizarBadgeMensagens() {
   let naoLidas = 0;
   if (usuarioEhGestorPlus()) {
     naoLidas = dados.mensagens.filter(m => !m.lido).length +
-      dados.mensagens_internas.filter(m => m.remetente === 'colaborador' && !m.lido).length;
+      dados.mensagens_internas.filter(m => m.remetente === 'colaborador' && !m.lido).length +
+      dados.mensagens_clientes.filter(m => m.remetente === 'cliente' && !m.lido).length;
   } else if (estaAutenticado()) {
     naoLidas = dados.mensagens_internas.filter(m => m.usuario_id === authUsuario.id && m.remetente === 'gestao' && !m.lido).length;
   }
@@ -1454,8 +1466,9 @@ async function loginUsuario() {
   atualizarInterface();
   safeCreateIcons();
   fecharLogin();
-  // Fica no site público — o utilizador pode clicar "Painel" quando quiser
   mostrarToast(`Bem-vindo${authUsuario?.nome ? ', ' + authUsuario.nome : ''}!`, 'success');
+  if (authCliente) irParaApp(); // clientes vão logo para a sua Área
+  // Restante fica no site público — pode clicar "Painel" quando quiser
 }
 
 async function registrarUsuario() {
@@ -1464,6 +1477,7 @@ async function registrarUsuario() {
   const telefone  = document.getElementById('reg-telefone').value.trim();
   const senha     = document.getElementById('reg-senha').value;
   const confirmar = document.getElementById('reg-confirmar-senha').value;
+  const tipo      = document.querySelector('input[name="reg-tipo"]:checked')?.value || 'equipa';
 
   if (!username)           { mostrarToast('O username é obrigatório.', 'error'); return; }
   if (senha.length < 6)    { mostrarToast('A senha deve ter pelo menos 6 caracteres.', 'error'); return; }
@@ -1472,7 +1486,7 @@ async function registrarUsuario() {
   const { data, error } = await sb.auth.signUp({
     email,
     password: senha,
-    options: { data: { nome: username, username, telefone } },
+    options: { data: { nome: username, username, telefone, tipo } },
   });
 
   if (error) {
@@ -1501,8 +1515,14 @@ async function registrarUsuario() {
   atualizarInterface();
   safeCreateIcons();
   fecharLogin();
-  // Fica no site público — o utilizador pode clicar "Painel" quando quiser
-  mostrarToast('Conta registada com sucesso!', 'success');
+
+  if (tipo === 'cliente') {
+    mostrarToast('Conta criada com sucesso!', 'success');
+    irParaApp(); // entra logo na Área do Cliente
+  } else {
+    // Fica no site público — o utilizador pode clicar "Painel" quando quiser
+    mostrarToast('Conta registada com sucesso!', 'success');
+  }
 }
 
 // Aplica uma sessão do Supabase Auth ao estado local (authUsuario),
@@ -1511,8 +1531,11 @@ async function aplicarSessao(session) {
   if (session && session.user) {
     const { data: perfil } = await sb.from('perfis').select('*').eq('id', session.user.id).maybeSingle();
     authUsuario = perfil || null;
+    const { data: cliente } = await sb.from('clientes').select('*').eq('usuario_id', session.user.id).maybeSingle();
+    authCliente = cliente || null;
   } else {
     authUsuario = null;
+    authCliente = null;
   }
   atualizarUsuarioLogado();
 }
@@ -1538,7 +1561,7 @@ function atualizarInterface() {
   const isGestorPlus  = usuarioEhGestorPlus();
   const logado        = estaAutenticado();
   const permitidas    = logado && !isGestorPlus ? paginasPermitidasPara(authUsuario.papel) : [];
-  const isPendente    = logado && !isGestorPlus && permitidas.length === 0;
+  const isPendente    = usuarioPendente();
 
   // Mostrar/ocultar itens de nav consoante o papel
   document.querySelectorAll('.nav-item').forEach(item => {
@@ -1636,6 +1659,15 @@ function renderColaboradorArea() {
   if (nomeEl && authUsuario) nomeEl.textContent = authUsuario.nome || 'Colaborador';
 }
 
+// Só true para quem está autenticado, NÃO é Gestor+, e o papel (ou falta dele)
+// não dá acesso a nenhuma página — ou seja, à espera de cargo. Diferente de
+// usuarioEhColaborador(), que também é true para Supervisor/Assistente/Auxiliar
+// (cargos reais, não pendentes).
+function usuarioPendente() {
+  if (!estaAutenticado() || usuarioEhGestorPlus()) return false;
+  return paginasPermitidasPara(authUsuario.papel).length === 0;
+}
+
 function usuarioEhGestorPlus() {
   if (!estaAutenticado()) return false;
   // Gestor+ = nível <= 1 (Administrador=0, Gestor=1)
@@ -1666,6 +1698,7 @@ function abrirModalPerfil() {
 async function logoutUsuario() {
   await sb.auth.signOut();
   authUsuario = null;
+  authCliente = null;
   await carregarDados(); // recarrega já com a visibilidade de visitante anónimo
   aplicarTextosSite();
   renderPublicProdutos();
@@ -1986,28 +2019,281 @@ function abrirLoginPublico() {
 // Troca o site público pelo painel (requer autenticação)
 function irParaApp(pagina) {
   if (!estaAutenticado()) { abrirLoginPublico(); return; }
+
+  if (authCliente) {
+    mostrarClientContainer();
+    irParaPaginaCliente(pagina && ['mensagens', 'servicos'].includes(pagina) ? pagina : (localStorage.getItem('lg_pagina_cliente') || 'mensagens'));
+    return;
+  }
+
   document.getElementById('public-site').style.display = 'none';
   document.getElementById('app-container').classList.remove('app-hidden');
 
   // Se a página foi passada explicitamente, usar essa (ex: botão "Gerir Produtos").
-  // Caso contrário, colaboradores vão sempre para a Área do Colaborador;
-  // gestores/administradores vão para a última página visitada ou dashboard.
+  // Só quem está mesmo pendente (sem cargo atribuído) vai sempre para a Área do
+  // Colaborador. Quem já tem cargo (mesmo Supervisor/Assistente/Auxiliar) vai para
+  // a última página visitada, ou Agenda por omissão — irParaPagina() valida o
+  // acesso de qualquer forma, por isso não há risco de cair numa página proibida.
   let destino;
   if (pagina) {
     destino = pagina;
-  } else if (usuarioEhColaborador()) {
+  } else if (usuarioPendente()) {
     destino = 'colaborador';
+  } else if (usuarioEhColaborador()) {
+    destino = localStorage.getItem('lg_pagina_ativa') || 'agenda';
   } else {
     destino = localStorage.getItem('lg_pagina_ativa') || 'relatorios';
   }
   irParaPagina(destino);
 }
 
-// Volta do painel para o site público
+// Volta do painel (equipa OU cliente) para o site público
 function voltarParaSite() {
   document.getElementById('public-site').style.display = '';
   document.getElementById('app-container').classList.add('app-hidden');
+  const clientCont = document.getElementById('client-container');
+  if (clientCont) clientCont.classList.add('app-hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ── Área do Cliente ──────────────────────────────────────────────────── */
+
+function mostrarClientContainer() {
+  document.getElementById('public-site').style.display = 'none';
+  document.getElementById('app-container').classList.add('app-hidden');
+  document.getElementById('client-container').classList.remove('app-hidden');
+  const nomeEl = document.getElementById('client-nome');
+  if (nomeEl && authCliente) nomeEl.textContent = authCliente.nome || 'Cliente';
+  carregarDadosCliente();
+}
+
+function irParaPaginaCliente(pagina) {
+  if (!['mensagens', 'servicos'].includes(pagina)) pagina = 'mensagens';
+  localStorage.setItem('lg_pagina_cliente', pagina);
+  document.querySelectorAll('.client-nav-item').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.cpage === pagina);
+  });
+  document.querySelectorAll('.client-page').forEach(p => {
+    p.classList.toggle('active', p.id === 'cpage-' + pagina);
+  });
+}
+
+async function carregarDadosCliente() {
+  if (!authCliente) return;
+  const [resS, resM, resFP] = await Promise.all([
+    sb.from('servicos').select('*').eq('cliente_id', authCliente.id).order('dia', { ascending: true }),
+    sb.from('mensagens_clientes').select('*').eq('cliente_id', authCliente.id).order('created_at', { ascending: true }),
+    sb.from('funcionarias_publicas').select('*'),
+  ]);
+  dados.cliente_servicos  = resS.data  || [];
+  dados.cliente_mensagens = resM.data  || [];
+  dados.funcionarias_pub  = resFP.data || [];
+  renderClienteServicos();
+  renderClienteChat();
+  marcarMensagensClienteLidas('cliente');
+  safeCreateIcons();
+}
+
+function renderClienteServicos() {
+  const lista = document.getElementById('cliente-servicos-lista');
+  const empty = document.getElementById('cliente-servicos-empty');
+  if (!lista || !empty) return;
+
+  if (!dados.cliente_servicos.length) {
+    lista.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  lista.innerHTML = dados.cliente_servicos.map(s => {
+    const func = dados.funcionarias_pub.find(f => f.id === s.funcionaria_id);
+    return `
+      <div class="cliente-servico-card">
+        <div class="cliente-servico-dia">${NOMES_DIAS[s.dia] || ''}</div>
+        <div class="cliente-servico-info">
+          <div class="cliente-servico-hora">${s.inicio} – ${s.fim}</div>
+          <div class="cliente-servico-func">${func ? func.nome : 'A atribuir'}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderClienteChat() {
+  const chat = document.getElementById('cliente-chat-mensagens');
+  if (!chat) return;
+  if (!dados.cliente_mensagens.length) {
+    chat.innerHTML = '<p class="chat-empty">Sem mensagens ainda. Escreva-nos!</p>';
+    return;
+  }
+  chat.innerHTML = dados.cliente_mensagens.map(m => {
+    const hora = m.created_at
+      ? new Date(m.created_at).toLocaleString('pt-PT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+      : '';
+    return `
+      <div class="chat-msg ${m.remetente === 'empresa' ? 'equipa' : 'cliente'}">
+        <div class="chat-msg-autor">${m.autor_nome}</div>
+        <div class="chat-msg-texto">${m.mensagem}</div>
+        <div class="chat-msg-hora">${hora}</div>
+      </div>`;
+  }).join('');
+  chat.scrollTop = chat.scrollHeight;
+}
+
+async function enviarMensagemCliente() {
+  if (!authCliente) return;
+  const input = document.getElementById('cliente-chat-input');
+  const texto = (input?.value || '').trim();
+  if (!texto) return;
+
+  const obj = {
+    id:         gerarId(),
+    cliente_id: authCliente.id,
+    remetente:  'cliente',
+    autor_nome: authCliente.nome || 'Cliente',
+    mensagem:   texto,
+    lido:       false,
+  };
+  const { error } = await sb.from('mensagens_clientes').insert(obj);
+  if (error) { mostrarToast('Erro ao enviar mensagem.', 'error'); return; }
+
+  dados.cliente_mensagens.push({ ...obj, created_at: new Date().toISOString() });
+  input.value = '';
+  renderClienteChat();
+}
+
+function abrirPedidoOrcamento() {
+  const desc = document.getElementById('orcamento-descricao');
+  if (desc) desc.value = '';
+  document.getElementById('modal-orcamento').classList.add('open');
+}
+
+async function enviarPedidoOrcamento() {
+  if (!authCliente) return;
+  const texto = (document.getElementById('orcamento-descricao')?.value || '').trim();
+  if (!texto) { mostrarToast('Descreva o que precisa antes de enviar.', 'error'); return; }
+
+  const obj = {
+    id:         gerarId(),
+    cliente_id: authCliente.id,
+    remetente:  'cliente',
+    autor_nome: authCliente.nome || 'Cliente',
+    mensagem:   '📋 Pedido de Orçamento: ' + texto,
+    lido:       false,
+  };
+  const { error } = await sb.from('mensagens_clientes').insert(obj);
+  if (error) { mostrarToast('Erro ao enviar pedido.', 'error'); return; }
+
+  dados.cliente_mensagens.push({ ...obj, created_at: new Date().toISOString() });
+  fecharModal('modal-orcamento');
+  irParaPaginaCliente('mensagens');
+  renderClienteChat();
+  mostrarToast('Pedido de orçamento enviado!', 'success');
+}
+
+/* ── Área da Equipa: aba "Chat com Clientes" (responder aos pedidos) ────── */
+
+function renderChatClientesLista() {
+  const cont = document.getElementById('chatClientesLista');
+  if (!cont) return;
+
+  if (!dados.clientes.length) {
+    cont.innerHTML = '<p class="chat-empty">Sem clientes registados.</p>';
+    return;
+  }
+  cont.innerHTML = dados.clientes.map(c => {
+    const naoLidas = dados.mensagens_clientes.filter(m => m.cliente_id === c.id && m.remetente === 'cliente' && !m.lido).length;
+    const ativo    = chatClienteAlvoId === c.id;
+    return `
+      <button class="chat-equipa-item${ativo ? ' active' : ''}" onclick="abrirChatCliente('${c.id}')">
+        <span class="chat-equipa-nome">${c.nome}</span>
+        ${naoLidas ? `<span class="nav-badge">${naoLidas}</span>` : ''}
+      </button>`;
+  }).join('');
+}
+
+function abrirChatCliente(clienteId) {
+  chatClienteAlvoId = clienteId;
+  const titulo = document.getElementById('chat-clientes-titulo');
+  if (titulo) {
+    const c = dados.clientes.find(c => c.id === clienteId);
+    titulo.textContent = c ? `Conversa com ${c.nome}` : 'Selecione uma conversa';
+  }
+  renderChatClientesLista();
+  carregarMensagemCliente_Staff();
+  marcarMensagensClienteLidas('empresa');
+}
+
+function carregarMensagemCliente_Staff() {
+  const chat = document.getElementById('chat-clientes-msgs');
+  if (!chat || !chatClienteAlvoId) return;
+  const msgs = dados.mensagens_clientes.filter(m => m.cliente_id === chatClienteAlvoId);
+  if (!msgs.length) {
+    chat.innerHTML = '<p class="chat-empty">Sem mensagens ainda.</p>';
+    return;
+  }
+  chat.innerHTML = msgs.map(m => {
+    const hora = m.created_at
+      ? new Date(m.created_at).toLocaleString('pt-PT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+      : '';
+    return `
+      <div class="chat-msg ${m.remetente === 'empresa' ? 'equipa' : 'cliente'}">
+        <div class="chat-msg-autor">${m.autor_nome}</div>
+        <div class="chat-msg-texto">${m.mensagem}</div>
+        <div class="chat-msg-hora">${hora}</div>
+      </div>`;
+  }).join('');
+  chat.scrollTop = chat.scrollHeight;
+}
+
+async function enviarMensagemParaCliente() {
+  if (!chatClienteAlvoId) { mostrarToast('Selecione uma conversa primeiro.', 'error'); return; }
+  const input = document.getElementById('chat-clientes-input');
+  const texto = (input?.value || '').trim();
+  if (!texto) return;
+
+  const obj = {
+    id:         gerarId(),
+    cliente_id: chatClienteAlvoId,
+    remetente:  'empresa',
+    autor_nome: authUsuario.nome || 'Equipa BORG',
+    mensagem:   texto,
+    lido:       true,
+  };
+  const { error } = await sb.from('mensagens_clientes').insert(obj);
+  if (error) { mostrarToast('Erro ao enviar mensagem.', 'error'); return; }
+
+  dados.mensagens_clientes.push({ ...obj, created_at: new Date().toISOString() });
+  input.value = '';
+  carregarMensagemCliente_Staff();
+  atualizarBadgeMensagens();
+}
+
+// remetenteChamador: 'cliente' quando é a Área do Cliente a marcar como lidas as
+// respostas da empresa; 'empresa' quando é a equipa a marcar como lidas as
+// mensagens recebidas de um cliente.
+async function marcarMensagensClienteLidas(remetenteChamador) {
+  const fonte = remetenteChamador === 'cliente' ? dados.cliente_mensagens : dados.mensagens_clientes;
+  const alvoId = remetenteChamador === 'cliente' ? authCliente?.id : chatClienteAlvoId;
+  const remetenteAlvo = remetenteChamador === 'cliente' ? 'empresa' : 'cliente';
+  if (!alvoId) return;
+
+  const naoLidas = fonte.filter(m => m.cliente_id === alvoId && m.remetente === remetenteAlvo && !m.lido);
+  if (!naoLidas.length) return;
+
+  for (const m of naoLidas) {
+    const { error } = await sb.from('mensagens_clientes').update({ lido: true }).eq('id', m.id);
+    if (!error) m.lido = true;
+  }
+  if (remetenteChamador === 'empresa') renderChatClientesLista();
+  atualizarBadgeMensagens();
+}
+
+async function carregarMensagensClientesApp() {
+  const { data, error } = await sb.from('mensagens_clientes').select('*').order('created_at', { ascending: true });
+  if (error) { mostrarToast('Erro ao atualizar chat de clientes.', 'error'); return; }
+  dados.mensagens_clientes = data || [];
+  renderChatClientesLista();
+  if (chatClienteAlvoId) carregarMensagemCliente_Staff();
 }
 
 // Scroll suave para uma secção pelo id
@@ -2312,11 +2598,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   safeCreateIcons();
 
   // Gestor+ entra automaticamente no painel ao voltar com sessão activa;
-  // Colaboradores ficam no site público até clicar "Painel" manualmente.
+  // Clientes entram automaticamente na sua Área; outros Colaboradores ficam
+  // no site público até clicar "Painel" manualmente.
   if (authUsuario) {
     const nivelUsuario = papelNivel(authUsuario.papel);
     if (nivelUsuario <= papelNivel('Gestor')) irParaApp();
   }
+  if (authCliente) irParaApp();
   atualizarInterface();
   esconderLoading();
 
