@@ -692,6 +692,9 @@
           <button class="tab-btn" data-tab="equipa" onclick="mudarTabMensagens('equipa')">
             <i data-lucide="message-circle"></i> Chat da Equipa
           </button>
+          <button class="tab-btn admin-only" data-tab="portal" onclick="mudarTabMensagens('portal')">
+            <i data-lucide="user-check"></i> Chat com Clientes
+          </button>
         </div>
 
         <!-- Aba: Mensagens de Clientes -->
@@ -714,6 +717,23 @@
               <div class="av-chat-input-row">
                 <input type="text" id="chat-equipa-input" placeholder="Escrever mensagem..." onkeydown="if(event.key==='Enter')enviarMensagemInterna();" />
                 <button class="btn-primary btn-sm" onclick="enviarMensagemInterna()">
+                  <i data-lucide="send"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Aba: Chat com Clientes (Portal do Cliente) -->
+        <div id="mensagens-tab-portal" class="mensagens-tab-content" style="display:none;">
+          <div class="chat-equipa-wrapper">
+            <div class="chat-equipa-lista" id="chatClientesLista"></div>
+            <div class="chat-equipa-painel">
+              <div class="chat-equipa-titulo" id="chat-clientes-titulo">Selecione uma conversa</div>
+              <div id="chat-clientes-msgs" class="av-chat-msgs"></div>
+              <div class="av-chat-input-row">
+                <input type="text" id="chat-clientes-input" placeholder="Escrever mensagem..." onkeydown="if(event.key==='Enter')enviarMensagemParaCliente();" />
+                <button class="btn-primary btn-sm" onclick="enviarMensagemParaCliente()">
                   <i data-lucide="send"></i>
                 </button>
               </div>
@@ -768,6 +788,65 @@
 
     </div><!-- fim main-wrapper -->
   </div><!-- fim #app-container -->
+
+  <!-- ════════════════════════════════════════════════════════
+       ÁREA DO CLIENTE
+       ════════════════════════════════════════════════════════ -->
+  <div id="client-container" class="app-hidden">
+    <header class="client-header">
+      <div class="client-header-brand">
+        <img src="img/Borg_Logo.webp" alt="BORG Services" onerror="this.style.display='none'" />
+        <span>BORG Services</span>
+      </div>
+      <div class="client-header-user">
+        Olá, <strong id="client-nome">Cliente</strong>
+      </div>
+      <div class="client-header-actions">
+        <button class="btn-secondary btn-sm" onclick="voltarParaSite()">Site</button>
+        <button class="btn-secondary btn-sm" onclick="abrirModalPerfil()">Perfil</button>
+        <button class="btn-secondary btn-sm" onclick="logoutUsuario()">Sair</button>
+      </div>
+    </header>
+
+    <nav class="client-nav">
+      <button class="client-nav-item active" data-cpage="mensagens" onclick="irParaPaginaCliente('mensagens')">
+        <i data-lucide="message-circle"></i> Mensagens
+      </button>
+      <button class="client-nav-item" data-cpage="servicos" onclick="irParaPaginaCliente('servicos')">
+        <i data-lucide="calendar"></i> Os Meus Serviços
+      </button>
+    </nav>
+
+    <main class="client-main">
+      <section id="cpage-mensagens" class="client-page active">
+        <div class="client-page-header">
+          <h2>Mensagens</h2>
+          <button class="btn-primary btn-sm" onclick="abrirPedidoOrcamento()">
+            <i data-lucide="file-plus"></i> Pedir Orçamento
+          </button>
+        </div>
+        <div id="cliente-chat-mensagens" class="av-chat-msgs client-chat-msgs"></div>
+        <div class="av-chat-input-row">
+          <input type="text" id="cliente-chat-input" placeholder="Escreva uma mensagem..." onkeydown="if(event.key==='Enter')enviarMensagemCliente();" />
+          <button class="btn-primary btn-sm" onclick="enviarMensagemCliente()">
+            <i data-lucide="send"></i>
+          </button>
+        </div>
+      </section>
+
+      <section id="cpage-servicos" class="client-page">
+        <div class="client-page-header">
+          <h2>Os Meus Serviços</h2>
+        </div>
+        <div id="cliente-servicos-lista" class="cliente-servicos-lista"></div>
+        <div id="cliente-servicos-empty" class="empty-state" style="display:none;">
+          <i data-lucide="calendar-x"></i>
+          <h3>Ainda não tem serviços agendados</h3>
+          <p>Assim que tiver uma limpeza marcada, vai aparecer aqui.</p>
+        </div>
+      </section>
+    </main>
+  </div><!-- fim #client-container -->
 
   <!-- ── Overlay Mobile ──────────────────────────────────── -->
   <div class="overlay" id="overlay" onclick="fecharSidebar()"></div>
@@ -871,6 +950,26 @@
           <i data-lucide="trash-2"></i> Eliminar
         </button>
         <button class="btn-primary" onclick="salvarCliente()"><i data-lucide="save"></i> Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Pedido de Orçamento (Área do Cliente) -->
+  <div class="modal-backdrop" id="modal-orcamento">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Pedir Orçamento</h3>
+        <button class="modal-close" onclick="fecharModal('modal-orcamento')"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Descreva o que precisa</label>
+          <textarea id="orcamento-descricao" rows="4" placeholder="Ex: Limpeza profunda de apartamento T2, disponibilidade a partir de..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="fecharModal('modal-orcamento')">Cancelar</button>
+        <button class="btn-primary" onclick="enviarPedidoOrcamento()"><i data-lucide="send"></i> Enviar Pedido</button>
       </div>
     </div>
   </div>
@@ -1109,6 +1208,19 @@
         </form>
         <!-- Register Form -->
         <form id="registerForm" class="auth-form hidden" onsubmit="event.preventDefault();registrarUsuario();">
+          <div class="form-group">
+            <label>Tipo de conta</label>
+            <div class="reg-tipo-toggle">
+              <label class="reg-tipo-option">
+                <input type="radio" name="reg-tipo" value="cliente" checked />
+                <span>Sou Cliente</span>
+              </label>
+              <label class="reg-tipo-option">
+                <input type="radio" name="reg-tipo" value="equipa" />
+                <span>Sou da Equipa</span>
+              </label>
+            </div>
+          </div>
           <div class="form-group">
             <label for="reg-email">Email</label>
             <input type="email" id="reg-email" placeholder="seu@email.com" required autocomplete="username" />
