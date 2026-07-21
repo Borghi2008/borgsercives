@@ -1642,8 +1642,13 @@ function atualizarInterface() {
   });
 
   // Elementos gerais admin-only fora da nav (botões, secções, etc.)
+  // Nota: usar sempre 'flex' aqui "achatava" os botões (.btn-primary usa
+  // inline-flex) — o botão ficava a ocupar a largura toda e o conteúdo
+  // colava-se à esquerda em vez de ficar centrado (bug visível em
+  // "Produtos" ao recarregar a página com sessão de Gestor/Admin ativa).
   document.querySelectorAll('.admin-only:not(.nav-item)').forEach(item => {
-    item.style.display = isGestorPlus ? 'flex' : 'none';
+    if (!isGestorPlus) { item.style.display = 'none'; return; }
+    item.style.display = item.classList.contains('btn-primary') ? 'inline-flex' : 'flex';
   });
   document.querySelectorAll('.colaborador-only:not(.nav-item)').forEach(item => {
     item.style.display = usuarioEhColaborador() ? 'flex' : 'none';
