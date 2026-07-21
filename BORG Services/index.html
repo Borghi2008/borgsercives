@@ -943,6 +943,12 @@
           <label>Observações</label>
           <textarea id="cliente-obs" rows="3" placeholder="Notas especiais, animais, preferências..."></textarea>
         </div>
+        <div class="form-group" id="ligar-conta-secao" style="display:none;">
+          <label>Ligar a uma conta de cliente registada</label>
+          <p class="ligar-conta-hint">Se este cliente já se registou no site, procure e ligue a conta aqui — evita ficar com dois registos separados.</p>
+          <input type="text" id="ligar-conta-busca" placeholder="Procurar por nome, telefone ou email..." oninput="buscarContasParaLigar()" />
+          <div id="ligar-conta-resultados" class="ligar-conta-resultados"></div>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn-secondary" onclick="fecharModal('modal-cliente')">Cancelar</button>
