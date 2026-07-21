@@ -386,7 +386,7 @@ function renderClientes() {
     empty.style.display = 'none';
     tbody.innerHTML = lista.map(c => `
       <tr class="clickable-row" onclick="abrirModalCliente('${c.id}')">
-        <td><strong>${c.nome}</strong></td>
+        <td><strong>${c.nome}</strong> ${c.usuario_id ? '<span class="badge-conta" title="Tem conta no Portal do Cliente">Portal</span>' : ''}</td>
         <td>${c.telefone ? `<a href="tel:${c.telefone}" style="color:var(--color-accent-dark)">${c.telefone}</a>` : '—'}</td>
         <td>${c.morada || '—'}</td>
         <td><span class="obs-text">${c.obs || '—'}</span></td>
@@ -400,12 +400,17 @@ function abrirModalCliente(id) {
   document.getElementById('modal-cliente-title').textContent = id ? 'Editar Cliente' : 'Novo Cliente';
 
   const deleteBtn = document.getElementById('btn-eliminar-cliente');
+  const ligarSecao = document.getElementById('ligar-conta-secao');
+  document.getElementById('ligar-conta-busca').value = '';
+  document.getElementById('ligar-conta-resultados').innerHTML = '';
+
+  let cliente = null;
   if (id) {
-    const c = dados.clientes.find(c => c.id === id);
-    document.getElementById('cliente-nome').value     = c.nome || '';
-    document.getElementById('cliente-telefone').value = c.telefone || '';
-    document.getElementById('cliente-morada').value   = c.morada || '';
-    document.getElementById('cliente-obs').value      = c.obs || '';
+    cliente = dados.clientes.find(c => c.id === id);
+    document.getElementById('cliente-nome').value     = cliente.nome || '';
+    document.getElementById('cliente-telefone').value = cliente.telefone || '';
+    document.getElementById('cliente-morada').value   = cliente.morada || '';
+    document.getElementById('cliente-obs').value      = cliente.obs || '';
     deleteBtn.style.display = 'inline-flex';
   } else {
     document.getElementById('cliente-nome').value     = '';
@@ -414,7 +419,56 @@ function abrirModalCliente(id) {
     document.getElementById('cliente-obs').value      = '';
     deleteBtn.style.display = 'none';
   }
+  ligarSecao.style.display = (id && cliente && !cliente.usuario_id) ? 'block' : 'none';
   abrirModal('modal-cliente');
+}
+
+function buscarContasParaLigar() {
+  const termo   = document.getElementById('ligar-conta-busca').value.trim().toLowerCase();
+  const idAtual = document.getElementById('cliente-id').value;
+  const cont    = document.getElementById('ligar-conta-resultados');
+
+  if (termo.length < 2) { cont.innerHTML = ''; return; }
+
+  const candidatos = dados.clientes.filter(c => c.usuario_id && c.id !== idAtual).map(c => {
+    const perfil = dados.usuarios.find(u => u.id === c.usuario_id);
+    return { ...c, email: perfil?.email || '' };
+  }).filter(c =>
+    c.nome.toLowerCase().includes(termo) ||
+    (c.telefone || '').includes(termo) ||
+    c.email.toLowerCase().includes(termo)
+  );
+
+  if (!candidatos.length) {
+    cont.innerHTML = '<p class="chat-empty">Nenhuma conta encontrada.</p>';
+    return;
+  }
+  cont.innerHTML = candidatos.map(c => `
+    <button type="button" class="ligar-conta-item" onclick="selecionarContaParaLigar('${c.id}')">
+      <strong>${c.nome}</strong>
+      <span>${c.telefone || '—'} · ${c.email || '—'}</span>
+    </button>`).join('');
+}
+
+async function selecionarContaParaLigar(clienteNovoId) {
+  const idAtual = document.getElementById('cliente-id').value;
+  const nomeAtual = document.getElementById('cliente-nome').value;
+  const novo = dados.clientes.find(c => c.id === clienteNovoId);
+  if (!novo) return;
+
+  const ok = confirm(`Ligar a conta de "${novo.nome}" a este cliente ("${nomeAtual}")?\n\nO registo novo e vazio será removido; o histórico deste cliente mantém-se.`);
+  if (!ok) return;
+
+  const { error } = await sb.rpc('merge_cliente_conta', {
+    cliente_antigo_id: idAtual,
+    cliente_novo_id:   clienteNovoId,
+  });
+  if (error) { mostrarToast('Erro ao ligar conta: ' + error.message, 'error'); return; }
+
+  mostrarToast('Conta ligada com sucesso!', 'success');
+  fecharModal('modal-cliente');
+  await carregarDados();
+  renderClientes();
 }
 
 async function salvarCliente() {
@@ -1800,7 +1854,12 @@ function renderConfiguracao() {
     return;
   }
 
-  if (!dados.usuarios.length) {
+  // Contas de cliente (ligadas a um registo em "clientes") não são staff —
+  // não devem aparecer aqui nem ser promovíveis a um cargo.
+  const idsClientes = new Set(dados.clientes.filter(c => c.usuario_id).map(c => c.usuario_id));
+  const usuariosEquipa = dados.usuarios.filter(u => !idsClientes.has(u.id));
+
+  if (!usuariosEquipa.length) {
     tbody.innerHTML = '';
     empty.style.display = 'block';
     empty.innerHTML = `
@@ -1813,7 +1872,7 @@ function renderConfiguracao() {
 
   empty.style.display = 'none';
   const currentNivel = papelNivel(authUsuario.papel);
-  tbody.innerHTML = dados.usuarios.map(u => {
+  tbody.innerHTML = usuariosEquipa.map(u => {
     const allowedRoles       = PAPEL_HIERARQUIA.filter(opt => papelNivel(opt) > currentNivel);
     const currentRoleAllowed = allowedRoles.includes(u.papel);
     const options            = [];
