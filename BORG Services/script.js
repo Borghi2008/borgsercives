@@ -927,6 +927,10 @@ function renderProdutos() {
         <div class="produto-card-app-body">
           <div class="produto-card-app-nome">${p.nome}</div>
           <div class="produto-card-app-desc">${p.descricao || 'Sem descrição.'}</div>
+          ${(p.link_compra || '').split(',').map(l => l.trim()).filter(Boolean).map(l => `
+            <a href="${l}" target="_blank" rel="noopener noreferrer" class="produto-card-app-link">
+              <i data-lucide="external-link"></i> Ver na loja
+            </a>`).join(' ')}
         </div>
       </div>`).join('');
   }
@@ -984,6 +988,7 @@ function abrirModalProduto(id) {
     document.getElementById('produto-imagem').value    = p?.imagem_url || '';
     document.getElementById('produto-link').value      = p?.link_compra || '';
     document.getElementById('produto-ordem').value      = p?.ordem ?? '';
+    definirPreviewProdutoImagem(p?.imagem_url || '');
     deleteBtn.style.display = 'inline-flex';
   } else {
     document.getElementById('produto-nome').value      = '';
@@ -991,9 +996,77 @@ function abrirModalProduto(id) {
     document.getElementById('produto-imagem').value    = '';
     document.getElementById('produto-link').value      = '';
     document.getElementById('produto-ordem').value      = '';
+    definirPreviewProdutoImagem('');
     deleteBtn.style.display = 'none';
   }
+  document.getElementById('produto-imagem-file').value = '';
   abrirModal('modal-produto');
+}
+
+// Mostra/esconde a pré-visualização da foto do produto no modal
+function definirPreviewProdutoImagem(dataUrlOuVazio) {
+  const img    = document.getElementById('produto-imagem-preview');
+  const icon   = document.getElementById('produto-imagem-preview-icon');
+  const remover = document.getElementById('produto-imagem-remover');
+  if (dataUrlOuVazio) {
+    img.src = dataUrlOuVazio;
+    img.style.display = 'block';
+    icon.style.display = 'none';
+    remover.style.display = 'inline';
+  } else {
+    img.src = '';
+    img.style.display = 'none';
+    icon.style.display = 'block';
+    remover.style.display = 'none';
+  }
+}
+
+// Lê a foto escolhida do dispositivo, redimensiona/comprime para caber
+// numa imagem web razoável, e guarda como data URL no campo escondido
+// (o mesmo campo #produto-imagem que antes recebia a URL manual — por
+// isso salvarProduto() não precisa de nenhuma alteração).
+const PRODUTO_IMAGEM_MAX_LADO = 900;
+const PRODUTO_IMAGEM_QUALIDADE = 0.82;
+
+function handleProdutoImagemFile(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    mostrarToast('Escolhe um ficheiro de imagem válido.', 'error');
+    event.target.value = '';
+    return;
+  }
+
+  const leitor = new FileReader();
+  leitor.onload = () => {
+    const imgTemp = new Image();
+    imgTemp.onload = () => {
+      let { width, height } = imgTemp;
+      if (width > PRODUTO_IMAGEM_MAX_LADO || height > PRODUTO_IMAGEM_MAX_LADO) {
+        const escala = PRODUTO_IMAGEM_MAX_LADO / Math.max(width, height);
+        width  = Math.round(width * escala);
+        height = Math.round(height * escala);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(imgTemp, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL('image/jpeg', PRODUTO_IMAGEM_QUALIDADE);
+      document.getElementById('produto-imagem').value = dataUrl;
+      definirPreviewProdutoImagem(dataUrl);
+    };
+    imgTemp.onerror = () => mostrarToast('Não foi possível ler essa imagem.', 'error');
+    imgTemp.src = leitor.result;
+  };
+  leitor.onerror = () => mostrarToast('Não foi possível ler esse ficheiro.', 'error');
+  leitor.readAsDataURL(file);
+}
+
+function removerProdutoImagem() {
+  document.getElementById('produto-imagem').value = '';
+  document.getElementById('produto-imagem-file').value = '';
+  definirPreviewProdutoImagem('');
 }
 
 async function salvarProduto() {
