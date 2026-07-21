@@ -521,7 +521,7 @@ h1, h2, h3, .logo-text, .login-brand, .stat-value,
   background: var(--color-bg); border: 1.5px dashed var(--color-border);
   display: flex; align-items: center; justify-content: center; overflow: hidden;
 }
-.produto-imagem-preview img { width: 100%; height: 100%; object-fit: cover; }
+.produto-imagem-preview img { width: 100%; height: 100%; object-fit: contain; padding: 6px; box-sizing: border-box; }
 .produto-imagem-preview-icon,
 #produto-imagem-preview-icon { color: var(--color-muted); opacity: .4; width: 26px; height: 26px; }
 .produto-imagem-upload-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
@@ -886,7 +886,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   display: flex; align-items: center; justify-content: center;
   font-size: 40px;
 }
-.pub-produto-img img { width: 100%; height: 100%; object-fit: cover; }
+.pub-produto-img img { width: 100%; height: 100%; object-fit: contain; padding: 10px; box-sizing: border-box; }
 .pub-produto-body { padding: 16px; }
 .pub-produto-nome { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
 .pub-produto-desc { font-size: 12.5px; color: var(--color-muted); line-height: 1.55; margin-bottom: 12px; }
@@ -912,7 +912,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   background: linear-gradient(135deg,#EAF2FF,#DCEBFF);
   display: flex; align-items: center; justify-content: center; font-size: 36px;
 }
-.produto-card-app-img img { width: 100%; height: 100%; object-fit: cover; }
+.produto-card-app-img img { width: 100%; height: 100%; object-fit: contain; padding: 10px; box-sizing: border-box; }
 .produto-card-app-body { padding: 14px; }
 .produto-card-app-nome { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
 .produto-card-app-desc { font-size: 12.5px; color: var(--color-muted); margin-bottom: 10px; }
