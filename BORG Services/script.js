@@ -1734,13 +1734,12 @@ function funcionariaDoUsuario(usuarioId) {
   return dados.funcionarias.find(f => f.usuario_id === usuarioId) || null;
 }
 
-// Só gestores/administradores, ou a própria funcionária/o a quem o serviço
-// foi atribuído, podem criar/editar/eliminar entradas da agenda.
+// Só gestores/administradores podem criar/editar/eliminar entradas da
+// agenda. Cargos abaixo de Gestor (Supervisor, Assistente, Auxiliar) podem
+// ver a agenda mas não podem alterar a sua própria — mesmo que o serviço
+// lhes esteja atribuído.
 function podeEditarAgendaDe(funcionariaId) {
-  if (usuarioEhGestorPlus()) return true;
-  if (!estaAutenticado()) return false;
-  const minhaFunc = funcionariaDoUsuario(authUsuario.id);
-  return !!minhaFunc && minhaFunc.id === funcionariaId;
+  return usuarioEhGestorPlus();
 }
 
 function abrirModalPerfil() {
