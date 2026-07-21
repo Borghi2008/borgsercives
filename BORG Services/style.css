@@ -513,6 +513,23 @@ h1, h2, h3, .logo-text, .login-brand, .stat-value,
 .btn-icon:hover { background: var(--color-bg); color: var(--color-text); }
 .btn-icon svg { width: 16px; height: 16px; }
 .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+.produto-imagem-upload { display: flex; align-items: center; gap: 16px; }
+.produto-imagem-preview {
+  width: 84px; height: 84px; flex-shrink: 0; border-radius: var(--radius-sm);
+  background: var(--color-bg); border: 1.5px dashed var(--color-border);
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.produto-imagem-preview img { width: 100%; height: 100%; object-fit: cover; }
+.produto-imagem-preview-icon,
+#produto-imagem-preview-icon { color: var(--color-muted); opacity: .4; width: 26px; height: 26px; }
+.produto-imagem-upload-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.produto-imagem-btn { cursor: pointer; }
+.btn-link-danger {
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--color-danger); font-size: 12px; font-weight: 600;
+}
+.btn-link-danger:hover { text-decoration: underline; }
 .btn-block { width: 100%; }
 
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, .nav-item:focus-visible {
@@ -898,6 +915,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .produto-card-app-body { padding: 14px; }
 .produto-card-app-nome { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
 .produto-card-app-desc { font-size: 12.5px; color: var(--color-muted); margin-bottom: 10px; }
+.produto-card-app-link { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--color-accent); text-decoration: none; margin-top: 2px; }
+.produto-card-app-link + .produto-card-app-link { margin-left: 10px; }
+.produto-card-app-link:hover { text-decoration: underline; }
 .produto-card-app-actions {
   position: absolute; top: 8px; right: 8px;
   display: flex; gap: 4px; opacity: 0; transition: opacity .15s;
