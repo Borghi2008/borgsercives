@@ -1044,13 +1044,26 @@
           <textarea id="produto-descricao" rows="3" placeholder="Para que serve, características..."></textarea>
         </div>
         <div class="form-group">
-          <label>URL da Imagem</label>
-          <input type="url" id="produto-imagem" placeholder="https://exemplo.com/imagem.jpg" />
-          <span class="field-note">Link direto para a imagem do produto (opcional).</span>
+          <label>Foto do Produto</label>
+          <div class="produto-imagem-upload">
+            <div class="produto-imagem-preview" id="produto-imagem-preview-wrap">
+              <img id="produto-imagem-preview" alt="Pré-visualização" style="display:none;" />
+              <i data-lucide="image" id="produto-imagem-preview-icon"></i>
+            </div>
+            <div class="produto-imagem-upload-actions">
+              <label class="btn-secondary produto-imagem-btn" for="produto-imagem-file">
+                <i data-lucide="upload"></i> Escolher foto
+              </label>
+              <input type="file" id="produto-imagem-file" accept="image/*" onchange="handleProdutoImagemFile(event)" hidden />
+              <button type="button" class="btn-link-danger" id="produto-imagem-remover" onclick="removerProdutoImagem()" style="display:none;">Remover</button>
+            </div>
+          </div>
+          <input type="hidden" id="produto-imagem" />
+          <span class="field-note">Escolhe uma foto do telemóvel ou computador (opcional).</span>
         </div>
         <div class="form-group">
           <label>Link de Compra</label>
-          <input type="url" id="produto-link" placeholder="https://loja.com/produto" />
+          <input type="text" id="produto-link" placeholder="https://loja.com/produto" />
           <span class="field-note">Pode adicionar múltiplos links separados por vírgula.</span>
         </div>
         <div class="form-group">
