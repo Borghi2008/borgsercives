@@ -977,6 +977,7 @@ function renderPublicProdutos() {
 }
 
 function abrirModalProduto(id) {
+  definirEstadoProcessamentoImagem(false);
   document.getElementById('produto-id').value = id || '';
   document.getElementById('modal-produto-title').textContent = id ? 'Editar Produto' : 'Novo Produto';
 
@@ -1021,45 +1022,91 @@ function definirPreviewProdutoImagem(dataUrlOuVazio) {
   }
 }
 
+// Enquanto a foto está a ser lida/comprimida, bloqueia o botão Guardar
+// para não deixar o produto ser gravado sem imagem por engano (o
+// processamento é assíncrono e nunca deve ser mais rápido que um clique).
+function definirEstadoProcessamentoImagem(aProcessar) {
+  const guardarBtn = document.getElementById('btn-guardar-produto');
+  const nota       = document.getElementById('produto-imagem-nota');
+  if (guardarBtn) guardarBtn.disabled = aProcessar;
+  if (nota) {
+    nota.textContent = aProcessar
+      ? 'A preparar a foto, aguarda um instante…'
+      : 'Escolhe uma foto do telemóvel ou computador (opcional).';
+  }
+}
+
 // Lê a foto escolhida do dispositivo, redimensiona/comprime para caber
 // numa imagem web razoável, e guarda como data URL no campo escondido
 // (o mesmo campo #produto-imagem que antes recebia a URL manual — por
 // isso salvarProduto() não precisa de nenhuma alteração).
-const PRODUTO_IMAGEM_MAX_LADO = 900;
+const PRODUTO_IMAGEM_MAX_LADO = 600;
 const PRODUTO_IMAGEM_QUALIDADE = 0.82;
 
 function handleProdutoImagemFile(event) {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
 
-  if (!file.type.startsWith('image/')) {
+  // Alguns browsers (sobretudo em telemóvel) podem não indicar o tipo do
+  // ficheiro; só rejeitamos quando temos a certeza de que NÃO é imagem.
+  if (file.type && !file.type.startsWith('image/')) {
     mostrarToast('Escolhe um ficheiro de imagem válido.', 'error');
     event.target.value = '';
     return;
   }
 
+  definirEstadoProcessamentoImagem(true);
+
   const leitor = new FileReader();
-  leitor.onload = () => {
-    const imgTemp = new Image();
-    imgTemp.onload = () => {
-      let { width, height } = imgTemp;
-      if (width > PRODUTO_IMAGEM_MAX_LADO || height > PRODUTO_IMAGEM_MAX_LADO) {
-        const escala = PRODUTO_IMAGEM_MAX_LADO / Math.max(width, height);
-        width  = Math.round(width * escala);
-        height = Math.round(height * escala);
-      }
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      canvas.getContext('2d').drawImage(imgTemp, 0, 0, width, height);
-      const dataUrl = canvas.toDataURL('image/jpeg', PRODUTO_IMAGEM_QUALIDADE);
-      document.getElementById('produto-imagem').value = dataUrl;
-      definirPreviewProdutoImagem(dataUrl);
-    };
-    imgTemp.onerror = () => mostrarToast('Não foi possível ler essa imagem.', 'error');
-    imgTemp.src = leitor.result;
+
+  leitor.onerror = () => {
+    console.error('Erro ao ler o ficheiro da foto:', leitor.error);
+    mostrarToast('Não foi possível ler esse ficheiro. Tenta outra foto.', 'error');
+    definirEstadoProcessamentoImagem(false);
+    event.target.value = '';
   };
-  leitor.onerror = () => mostrarToast('Não foi possível ler esse ficheiro.', 'error');
+
+  leitor.onload = () => {
+    const dataUrlOriginal = leitor.result;
+
+    const imgTemp = new Image();
+
+    imgTemp.onload = () => {
+      try {
+        let { width, height } = imgTemp;
+        if (width > PRODUTO_IMAGEM_MAX_LADO || height > PRODUTO_IMAGEM_MAX_LADO) {
+          const escala = PRODUTO_IMAGEM_MAX_LADO / Math.max(width, height);
+          width  = Math.round(width * escala);
+          height = Math.round(height * escala);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(imgTemp, 0, 0, width, height);
+        const dataUrlFinal = canvas.toDataURL('image/jpeg', PRODUTO_IMAGEM_QUALIDADE);
+        document.getElementById('produto-imagem').value = dataUrlFinal;
+        definirPreviewProdutoImagem(dataUrlFinal);
+      } catch (err) {
+        // Se o redimensionamento falhar por algum motivo, não perdemos a
+        // foto — usamos a imagem original tal como foi lida do ficheiro.
+        console.error('Erro ao redimensionar a foto, a usar original:', err);
+        document.getElementById('produto-imagem').value = dataUrlOriginal;
+        definirPreviewProdutoImagem(dataUrlOriginal);
+      } finally {
+        definirEstadoProcessamentoImagem(false);
+      }
+    };
+
+    imgTemp.onerror = () => {
+      console.error('Não foi possível descodificar a imagem escolhida.');
+      mostrarToast('Não foi possível ler essa imagem. Tenta outra foto.', 'error');
+      definirEstadoProcessamentoImagem(false);
+      event.target.value = '';
+    };
+
+    imgTemp.src = dataUrlOriginal;
+  };
+
   leitor.readAsDataURL(file);
 }
 
@@ -1067,6 +1114,7 @@ function removerProdutoImagem() {
   document.getElementById('produto-imagem').value = '';
   document.getElementById('produto-imagem-file').value = '';
   definirPreviewProdutoImagem('');
+  definirEstadoProcessamentoImagem(false);
 }
 
 async function salvarProduto() {
