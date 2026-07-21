@@ -399,8 +399,10 @@ function abrirModalCliente(id) {
   document.getElementById('cliente-id').value = id || '';
   document.getElementById('modal-cliente-title').textContent = id ? 'Editar Cliente' : 'Novo Cliente';
 
-  const deleteBtn  = document.getElementById('btn-eliminar-cliente');
-  const selUsuario = document.getElementById('cliente-usuario');
+  const deleteBtn = document.getElementById('btn-eliminar-cliente');
+  const ligarSecao = document.getElementById('ligar-conta-secao');
+  document.getElementById('ligar-conta-busca').value = '';
+  document.getElementById('ligar-conta-resultados').innerHTML = '';
 
   let cliente = null;
   if (id) {
@@ -417,41 +419,68 @@ function abrirModalCliente(id) {
     document.getElementById('cliente-obs').value      = '';
     deleteBtn.style.display = 'none';
   }
-
-  // Só mostra contas com cargo "Cliente" que ainda não estejam ligadas a
-  // OUTRO registo de cliente (evita ficar com a mesma conta em duas fichas).
-  const idsJaLigados = new Set(dados.clientes.filter(c => c.usuario_id && c.id !== id).map(c => c.usuario_id));
-  const disponiveis  = dados.usuarios.filter(u => u.papel === 'Cliente' && !idsJaLigados.has(u.id));
-  selUsuario.innerHTML = '<option value="">Sem conta vinculada</option>' +
-    disponiveis.map(u => `<option value="${u.id}">${u.nome} (${u.email})</option>`).join('');
-  selUsuario.value = cliente?.usuario_id || '';
-
+  ligarSecao.style.display = (id && cliente && !cliente.usuario_id) ? 'block' : 'none';
   abrirModal('modal-cliente');
 }
 
-function autoPreencherClientePorUsuario() {
-  const usuarioId = document.getElementById('cliente-usuario')?.value;
-  if (!usuarioId) return;
-  const u = dados.usuarios.find(u => u.id === usuarioId);
-  if (!u) return;
-  const nomeInput = document.getElementById('cliente-nome');
-  if (nomeInput && !nomeInput.value.trim()) nomeInput.value = u.nome || '';
-  const telInput = document.getElementById('cliente-telefone');
-  if (telInput && !telInput.value.trim() && u.telefone) telInput.value = u.telefone;
+function buscarContasParaLigar() {
+  const termo   = document.getElementById('ligar-conta-busca').value.trim().toLowerCase();
+  const idAtual = document.getElementById('cliente-id').value;
+  const cont    = document.getElementById('ligar-conta-resultados');
+
+  if (termo.length < 2) { cont.innerHTML = ''; return; }
+
+  const candidatos = dados.clientes.filter(c => c.usuario_id && c.id !== idAtual).map(c => {
+    const perfil = dados.usuarios.find(u => u.id === c.usuario_id);
+    return { ...c, email: perfil?.email || '' };
+  }).filter(c =>
+    c.nome.toLowerCase().includes(termo) ||
+    (c.telefone || '').includes(termo) ||
+    c.email.toLowerCase().includes(termo)
+  );
+
+  if (!candidatos.length) {
+    cont.innerHTML = '<p class="chat-empty">Nenhuma conta encontrada.</p>';
+    return;
+  }
+  cont.innerHTML = candidatos.map(c => `
+    <button type="button" class="ligar-conta-item" onclick="selecionarContaParaLigar('${c.id}')">
+      <strong>${c.nome}</strong>
+      <span>${c.telefone || '—'} · ${c.email || '—'}</span>
+    </button>`).join('');
+}
+
+async function selecionarContaParaLigar(clienteNovoId) {
+  const idAtual = document.getElementById('cliente-id').value;
+  const nomeAtual = document.getElementById('cliente-nome').value;
+  const novo = dados.clientes.find(c => c.id === clienteNovoId);
+  if (!novo) return;
+
+  const ok = confirm(`Ligar a conta de "${novo.nome}" a este cliente ("${nomeAtual}")?\n\nO registo novo e vazio será removido; o histórico deste cliente mantém-se.`);
+  if (!ok) return;
+
+  const { error } = await sb.rpc('merge_cliente_conta', {
+    cliente_antigo_id: idAtual,
+    cliente_novo_id:   clienteNovoId,
+  });
+  if (error) { mostrarToast('Erro ao ligar conta: ' + error.message, 'error'); return; }
+
+  mostrarToast('Conta ligada com sucesso!', 'success');
+  fecharModal('modal-cliente');
+  await carregarDados();
+  renderClientes();
 }
 
 async function salvarCliente() {
   const nome = document.getElementById('cliente-nome').value.trim();
   if (!nome) { mostrarToast('O nome é obrigatório.', 'error'); return; }
 
-  const id        = document.getElementById('cliente-id').value;
-  const usuarioId = document.getElementById('cliente-usuario').value || null;
+  const id  = document.getElementById('cliente-id').value;
   const obj = {
     nome,
-    telefone:   document.getElementById('cliente-telefone').value.trim(),
-    morada:     document.getElementById('cliente-morada').value.trim(),
-    obs:        document.getElementById('cliente-obs').value.trim(),
-    usuario_id: usuarioId,
+    telefone: document.getElementById('cliente-telefone').value.trim(),
+    morada:   document.getElementById('cliente-morada').value.trim(),
+    obs:      document.getElementById('cliente-obs').value.trim(),
   };
 
   if (id) {
@@ -1492,7 +1521,7 @@ async function loginUsuario() {
   safeCreateIcons();
   fecharLogin();
   mostrarToast(`Bem-vindo${authUsuario?.nome ? ', ' + authUsuario.nome : ''}!`, 'success');
-  if (usuarioEhCliente()) irParaApp(); // clientes vão logo para a sua Área (ou para a mensagem de espera)
+  if (authCliente) irParaApp(); // clientes vão logo para a sua Área
   // Restante fica no site público — pode clicar "Painel" quando quiser
 }
 
@@ -1613,8 +1642,13 @@ function atualizarInterface() {
   });
 
   // Elementos gerais admin-only fora da nav (botões, secções, etc.)
+  // Nota: usar sempre 'flex' aqui "achatava" os botões (.btn-primary usa
+  // inline-flex) — o botão ficava a ocupar a largura toda e o conteúdo
+  // colava-se à esquerda em vez de ficar centrado (bug visível em
+  // "Produtos" ao recarregar a página com sessão de Gestor/Admin ativa).
   document.querySelectorAll('.admin-only:not(.nav-item)').forEach(item => {
-    item.style.display = isGestorPlus ? 'flex' : 'none';
+    if (!isGestorPlus) { item.style.display = 'none'; return; }
+    item.style.display = item.classList.contains('btn-primary') ? 'inline-flex' : 'flex';
   });
   document.querySelectorAll('.colaborador-only:not(.nav-item)').forEach(item => {
     item.style.display = usuarioEhColaborador() ? 'flex' : 'none';
@@ -1689,21 +1723,8 @@ function renderColaboradorArea() {
 // usuarioEhColaborador(), que também é true para Supervisor/Assistente/Auxiliar
 // (cargos reais, não pendentes).
 function usuarioPendente() {
-  if (!estaAutenticado() || usuarioEhGestorPlus() || usuarioEhCliente()) return false;
+  if (!estaAutenticado() || usuarioEhGestorPlus()) return false;
   return paginasPermitidasPara(authUsuario.papel).length === 0;
-}
-
-// papel === 'Cliente' — abrange tanto quem já está ligado a um registo em
-// "clientes" (authCliente preenchido) como quem se registou mas ainda não
-// foi associado pela equipa (ver clienteAguardaVinculo()).
-function usuarioEhCliente() {
-  return estaAutenticado() && authUsuario?.papel === 'Cliente';
-}
-
-// Registou-se como cliente, mas a equipa ainda não ligou a conta a
-// nenhuma linha de "clientes" (equivalente ao "pendente" dos colaboradores).
-function clienteAguardaVinculo() {
-  return usuarioEhCliente() && !authCliente;
 }
 
 function usuarioEhGestorPlus() {
@@ -1718,13 +1739,12 @@ function funcionariaDoUsuario(usuarioId) {
   return dados.funcionarias.find(f => f.usuario_id === usuarioId) || null;
 }
 
-// Só gestores/administradores, ou a própria funcionária/o a quem o serviço
-// foi atribuído, podem criar/editar/eliminar entradas da agenda.
+// Só gestores/administradores podem criar/editar/eliminar entradas da
+// agenda. Cargos abaixo de Gestor (Supervisor, Assistente, Auxiliar) podem
+// ver a agenda mas não podem alterar a sua própria — mesmo que o serviço
+// lhes esteja atribuído.
 function podeEditarAgendaDe(funcionariaId) {
-  if (usuarioEhGestorPlus()) return true;
-  if (!estaAutenticado()) return false;
-  const minhaFunc = funcionariaDoUsuario(authUsuario.id);
-  return !!minhaFunc && minhaFunc.id === funcionariaId;
+  return usuarioEhGestorPlus();
 }
 
 function abrirModalPerfil() {
@@ -1838,9 +1858,10 @@ function renderConfiguracao() {
     return;
   }
 
-  // Contas com o cargo "Cliente" não são staff — mesmo antes de serem
-  // ligadas a uma ficha de cliente, não devem aparecer aqui.
-  const usuariosEquipa = dados.usuarios.filter(u => u.papel !== 'Cliente');
+  // Contas de cliente (ligadas a um registo em "clientes") não são staff —
+  // não devem aparecer aqui nem ser promovíveis a um cargo.
+  const idsClientes = new Set(dados.clientes.filter(c => c.usuario_id).map(c => c.usuario_id));
+  const usuariosEquipa = dados.usuarios.filter(u => !idsClientes.has(u.id));
 
   if (!usuariosEquipa.length) {
     tbody.innerHTML = '';
@@ -2067,10 +2088,6 @@ function irParaApp(pagina) {
     irParaPaginaCliente(pagina && ['mensagens', 'servicos'].includes(pagina) ? pagina : (localStorage.getItem('lg_pagina_cliente') || 'mensagens'));
     return;
   }
-  if (clienteAguardaVinculo()) {
-    mostrarClientePendenteContainer();
-    return;
-  }
 
   document.getElementById('public-site').style.display = 'none';
   document.getElementById('app-container').classList.remove('app-hidden');
@@ -2099,19 +2116,7 @@ function voltarParaSite() {
   document.getElementById('app-container').classList.add('app-hidden');
   const clientCont = document.getElementById('client-container');
   if (clientCont) clientCont.classList.add('app-hidden');
-  const clientPend = document.getElementById('client-pending-container');
-  if (clientPend) clientPend.classList.add('app-hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function mostrarClientePendenteContainer() {
-  document.getElementById('public-site').style.display = 'none';
-  document.getElementById('app-container').classList.add('app-hidden');
-  const clientCont = document.getElementById('client-container');
-  if (clientCont) clientCont.classList.add('app-hidden');
-  document.getElementById('client-pending-container').classList.remove('app-hidden');
-  const nomeEl = document.getElementById('cliente-pendente-nome');
-  if (nomeEl && authUsuario) nomeEl.textContent = authUsuario.nome || 'Cliente';
 }
 
 /* ── Área do Cliente ──────────────────────────────────────────────────── */
@@ -2119,8 +2124,6 @@ function mostrarClientePendenteContainer() {
 function mostrarClientContainer() {
   document.getElementById('public-site').style.display = 'none';
   document.getElementById('app-container').classList.add('app-hidden');
-  const clientPend = document.getElementById('client-pending-container');
-  if (clientPend) clientPend.classList.add('app-hidden');
   document.getElementById('client-container').classList.remove('app-hidden');
   const nomeEl = document.getElementById('client-nome');
   if (nomeEl && authCliente) nomeEl.textContent = authCliente.nome || 'Cliente';
@@ -2664,7 +2667,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const nivelUsuario = papelNivel(authUsuario.papel);
     if (nivelUsuario <= papelNivel('Gestor')) irParaApp();
   }
-  if (usuarioEhCliente()) irParaApp();
+  if (authCliente) irParaApp();
   atualizarInterface();
   esconderLoading();
 
