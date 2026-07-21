@@ -1059,7 +1059,7 @@
             </div>
           </div>
           <input type="hidden" id="produto-imagem" />
-          <span class="field-note">Escolhe uma foto do telemóvel ou computador (opcional).</span>
+          <span class="field-note" id="produto-imagem-nota">Escolhe uma foto do telemóvel ou computador (opcional).</span>
         </div>
         <div class="form-group">
           <label>Link de Compra</label>
@@ -1076,7 +1076,7 @@
         <button class="btn-danger" id="btn-eliminar-produto" style="display:none;" onclick="confirmarEliminar('produto',document.getElementById('produto-id').value)">
           <i data-lucide="trash-2"></i> Eliminar
         </button>
-        <button class="btn-primary" onclick="salvarProduto()"><i data-lucide="save"></i> Guardar</button>
+        <button class="btn-primary" id="btn-guardar-produto" onclick="salvarProduto()"><i data-lucide="save"></i> Guardar</button>
       </div>
     </div>
   </div>
