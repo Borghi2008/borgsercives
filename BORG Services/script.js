@@ -1132,14 +1132,22 @@ async function salvarProduto() {
 
   if (id) {
     const { error } = await sb.from('produtos').update(obj).eq('id', id);
-    if (error) { mostrarToast('Erro ao atualizar produto.', 'error'); return; }
+    if (error) {
+      console.error('Erro ao atualizar produto:', error);
+      mostrarToast('Erro ao atualizar produto: ' + (error.message || 'desconhecido'), 'error');
+      return;
+    }
     const idx = dados.produtos.findIndex(p => p.id === id);
     dados.produtos[idx] = { ...dados.produtos[idx], ...obj };
     mostrarToast('Produto atualizado!', 'success');
   } else {
     const newId = gerarId();
     const { error } = await sb.from('produtos').insert({ id: newId, ...obj });
-    if (error) { mostrarToast('Erro ao adicionar produto.', 'error'); return; }
+    if (error) {
+      console.error('Erro ao adicionar produto:', error);
+      mostrarToast('Erro ao adicionar produto: ' + (error.message || 'desconhecido'), 'error');
+      return;
+    }
     dados.produtos.push({ id: newId, ...obj });
     mostrarToast('Produto adicionado!', 'success');
   }
