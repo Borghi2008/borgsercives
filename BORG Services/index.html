@@ -270,41 +270,64 @@
         <!-- Formulário de Nova Avaliação -->
         <div class="pub-av-form-card">
           <h3>Deixar a Sua Avaliação</h3>
-          <div class="form-group">
-            <label>Classificação *</label>
-            <div id="av-estrelas-input" class="av-estrelas-interactive"></div>
+
+          <!-- Estado 1: visitante sem sessão iniciada (visível por omissão até o JS confirmar a sessão) -->
+          <div id="pub-av-form-login" class="pub-av-form-msg">
+            <i data-lucide="lock"></i>
+            <p>Só clientes com um orçamento aceite podem deixar uma avaliação.</p>
+            <button class="btn-primary" onclick="abrirLoginPublico()">Entrar / Criar Conta</button>
           </div>
-          <div class="form-row">
+
+          <!-- Estado 2: cliente com sessão, mas ainda sem serviço agendado/aceite -->
+          <div id="pub-av-form-locked" class="pub-av-form-msg" style="display:none;">
+            <i data-lucide="clock"></i>
+            <p>A sua conta ainda não tem nenhum orçamento aceite. Assim que tiver um serviço agendado connosco, pode deixar aqui a sua avaliação.</p>
+          </div>
+
+          <!-- Estado 3: cliente elegível -->
+          <div id="pub-av-form-fields" style="display:none;">
             <div class="form-group">
-              <label>Nome *</label>
-              <input type="text" id="av-pub-nome" placeholder="O seu nome" />
+              <label>Classificação *</label>
+              <div id="av-estrelas-input" class="av-estrelas-interactive"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Nome *</label>
+                <input type="text" id="av-pub-nome" placeholder="O seu nome" />
+              </div>
+              <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="av-pub-email" placeholder="seu@email.com" />
+              </div>
             </div>
             <div class="form-group">
-              <label>Email</label>
-              <input type="email" id="av-pub-email" placeholder="seu@email.com" />
+              <label>Funcionária/o que limpou</label>
+              <select id="av-pub-funcionaria">
+                <option value="">Qualquer funcionária/o</option>
+              </select>
             </div>
+            <div class="form-group">
+              <label>Comentário</label>
+              <textarea id="av-pub-comentario" rows="3" placeholder="Conte a sua experiência..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Fotos <span style="font-weight:400;color:var(--color-muted)">(até 3 imagens)</span></label>
+              <div id="av-pub-fotos-dropzone" class="av-fotos-dropzone"
+                   ondragover="avFotosDragOver(event)"
+                   ondragleave="avFotosDragLeave(event)"
+                   ondrop="avFotosDrop(event)"
+                   onclick="document.getElementById('av-pub-fotos').click()">
+                <i data-lucide="upload-cloud"></i>
+                <p><strong>Arraste as fotos para aqui</strong> ou clique para escolher</p>
+                <span class="av-fotos-dropzone-hint">Até 3 imagens</span>
+                <input type="file" id="av-pub-fotos" accept="image/*" multiple onchange="previewAvaliacaoFotos(event)" style="display:none"/>
+              </div>
+              <div id="av-pub-fotos-preview" class="av-fotos-preview-row"></div>
+            </div>
+            <button class="btn-primary" onclick="enviarAvaliacaoPublica()">
+              <i data-lucide="send"></i> Enviar Avaliação
+            </button>
           </div>
-          <div class="form-group">
-            <label>Funcionária/o que limpou</label>
-            <select id="av-pub-funcionaria">
-              <option value="">Qualquer funcionária/o</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Comentário</label>
-            <textarea id="av-pub-comentario" rows="3" placeholder="Conte a sua experiência..."></textarea>
-          </div>
-          <div class="form-group">
-            <label>Fotos <span style="font-weight:400;color:var(--color-muted)">(até 3 imagens)</span></label>
-            <label class="btn-secondary btn-file" style="width:fit-content">
-              <i data-lucide="camera" style="width:14px;height:14px;vertical-align:middle;margin-right:6px"></i> Seleccionar fotos
-              <input type="file" id="av-pub-fotos" accept="image/*" multiple onchange="previewAvaliacaoFotos(event)" style="display:none"/>
-            </label>
-            <div id="av-pub-fotos-preview" class="av-fotos-preview-row"></div>
-          </div>
-          <button class="btn-primary" onclick="enviarAvaliacaoPublica()">
-            <i data-lucide="send"></i> Enviar Avaliação
-          </button>
         </div>
       </div>
     </section>
@@ -1228,19 +1251,9 @@
         </form>
         <!-- Register Form -->
         <form id="registerForm" class="auth-form hidden" onsubmit="event.preventDefault();registrarUsuario();">
-          <div class="form-group">
-            <label>Tipo de conta</label>
-            <div class="reg-tipo-toggle">
-              <label class="reg-tipo-option">
-                <input type="radio" name="reg-tipo" value="cliente" checked />
-                <span>Sou Cliente</span>
-              </label>
-              <label class="reg-tipo-option">
-                <input type="radio" name="reg-tipo" value="equipa" />
-                <span>Sou da Equipa</span>
-              </label>
-            </div>
-          </div>
+          <p class="auth-note" style="margin-bottom:18px;text-align:left;">
+            A sua conta é criada sem nenhum cargo atribuído. A nossa equipa define o seu acesso (cliente ou equipa) depois de criar a conta.
+          </p>
           <div class="form-group">
             <label for="reg-email">Email</label>
             <input type="email" id="reg-email" placeholder="seu@email.com" required autocomplete="username" />
