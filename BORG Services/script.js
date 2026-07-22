@@ -1660,16 +1660,19 @@ async function registrarUsuario() {
   const telefone  = document.getElementById('reg-telefone').value.trim();
   const senha     = document.getElementById('reg-senha').value;
   const confirmar = document.getElementById('reg-confirmar-senha').value;
-  const tipo      = document.querySelector('input[name="reg-tipo"]:checked')?.value || 'equipa';
 
   if (!username)           { mostrarToast('O username é obrigatório.', 'error'); return; }
   if (senha.length < 6)    { mostrarToast('A senha deve ter pelo menos 6 caracteres.', 'error'); return; }
   if (senha !== confirmar) { mostrarToast('As senhas não coincidem.', 'error'); return; }
 
+  // Nota: já não enviamos "tipo" (cliente/equipa) — a conta fica sem
+  // qualquer cargo atribuído. É a equipa que decide depois, manualmente,
+  // se a conta é de um cliente (ligando-a a um registo em "Clientes") ou
+  // de um membro da equipa (atribuindo-lhe um cargo em "Perfis").
   const { data, error } = await sb.auth.signUp({
     email,
     password: senha,
-    options: { data: { nome: username, username, telefone, tipo } },
+    options: { data: { nome: username, username, telefone } },
   });
 
   if (error) {
@@ -1699,13 +1702,9 @@ async function registrarUsuario() {
   safeCreateIcons();
   fecharLogin();
 
-  if (tipo === 'cliente') {
-    mostrarToast('Conta criada com sucesso!', 'success');
-    irParaApp(); // entra logo na Área do Cliente
-  } else {
-    // Fica no site público — o utilizador pode clicar "Painel" quando quiser
-    mostrarToast('Conta registada com sucesso!', 'success');
-  }
+  // Fica sempre no site público — sem cargo atribuído ainda não há painel
+  // para entrar. A equipa atribui o acesso e o utilizador pode voltar depois.
+  mostrarToast('Conta criada com sucesso! A nossa equipa vai atribuir o seu acesso em breve.', 'success');
 }
 
 // Aplica uma sessão do Supabase Auth ao estado local (authUsuario),
@@ -1716,11 +1715,53 @@ async function aplicarSessao(session) {
     authUsuario = perfil || null;
     const { data: cliente } = await sb.from('clientes').select('*').eq('usuario_id', session.user.id).maybeSingle();
     authCliente = cliente || null;
+
+    // Carrega já os serviços do cliente (se for cliente) para saber se tem
+    // pelo menos um orçamento aceite/serviço agendado — é essa a condição
+    // para poder deixar uma avaliação no site público.
+    if (authCliente) {
+      const { data: servicos } = await sb.from('servicos').select('id').eq('cliente_id', authCliente.id);
+      dados.cliente_servicos = servicos || [];
+    } else {
+      dados.cliente_servicos = [];
+    }
   } else {
     authUsuario = null;
     authCliente = null;
+    dados.cliente_servicos = [];
   }
   atualizarUsuarioLogado();
+  atualizarFormularioAvaliacao();
+}
+
+// Só clientes com pelo menos um serviço já aceite/agendado podem avaliar —
+// impede avaliações falsas de quem nunca foi cliente.
+function clienteElegivelParaAvaliar() {
+  return !!(authCliente && dados.cliente_servicos && dados.cliente_servicos.length > 0);
+}
+
+// Mostra o formulário de avaliação, uma mensagem de "ainda sem serviços", ou
+// um convite para entrar — consoante a sessão atual.
+function atualizarFormularioAvaliacao() {
+  const campos     = document.getElementById('pub-av-form-fields');
+  const semServico = document.getElementById('pub-av-form-locked');
+  const semSessao  = document.getElementById('pub-av-form-login');
+  if (!campos || !semServico || !semSessao) return;
+
+  const elegivel = clienteElegivelParaAvaliar();
+
+  campos.style.display     = elegivel ? '' : 'none';
+  semServico.style.display = (authCliente && !elegivel) ? 'block' : 'none';
+  semSessao.style.display  = (!authCliente) ? 'block' : 'none';
+
+  if (elegivel) {
+    // Nome e email ficam bloqueados aos dados da conta — impede que alguém
+    // se faça passar por outro cliente ao escrever uma avaliação.
+    const nomeEl  = document.getElementById('av-pub-nome');
+    const emailEl = document.getElementById('av-pub-email');
+    if (nomeEl)  { nomeEl.value  = authCliente.nome || '';    nomeEl.readOnly  = true; }
+    if (emailEl) { emailEl.value = (authUsuario && authUsuario.email) || ''; emailEl.readOnly = true; }
+  }
 }
 
 // Restaura a sessão ao carregar a página (equivalente ao antigo iniciarAuth).
@@ -1733,6 +1774,8 @@ async function restaurarSessaoInicial() {
 sb.auth.onAuthStateChange((event) => {
   if (event === 'SIGNED_OUT') {
     authUsuario = null;
+    authCliente = null;
+    dados.cliente_servicos = [];
     atualizarUsuarioLogado();
     atualizarInterface();
   }
@@ -1801,6 +1844,8 @@ function atualizarInterface() {
   });
   const prodBtn = document.getElementById('pub-produtos-gerir-btn');
   if (prodBtn) prodBtn.style.display = isGestorPlus ? 'block' : 'none';
+
+  atualizarFormularioAvaliacao();
 
   const loginBtn = document.getElementById('btnLoginHeader');
   if (!loginBtn) return;
@@ -2506,6 +2551,25 @@ function closePubMenu() {
 
 /* ── 10.3 Avaliações ─────────────────────────────────────── */
 
+// Converte a lista de fotos de uma avaliação (guardada como string) num array.
+// IMPORTANTE: as fotos são guardadas como JSON (ex.: '["data:image/...","data:image/..."]').
+// Antes usava-se split(',') para separar várias fotos, mas cada data-URL em
+// base64 já tem uma vírgula logo a seguir a "base64," (ex.: "data:image/png;base64,iVBORw...").
+// Isso partia CADA foto ao meio e corrompia o src da imagem — por isso as fotos
+// nunca apareciam depois de guardadas. JSON.stringify/parse resolve isto por completo.
+function parseFotosUrl(raw) {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.filter(Boolean);
+  } catch (e) {
+    // Não é JSON — deve ser um registo antigo guardado no formato corrompido.
+    // Não há forma fiável de recuperar fotos antigas partidas por vírgulas,
+    // mas evitamos rebentar o ecrã: tratamos como "sem fotos válidas".
+  }
+  return [];
+}
+
 function renderAvaliacoes() {
   const lista = document.getElementById('avaliacoes-lista');
   const empty = document.getElementById('avaliacoes-empty');
@@ -2517,34 +2581,43 @@ function renderAvaliacoes() {
   } else {
     if (empty) empty.style.display = 'none';
     lista.innerHTML = dados.avaliacoes.map(av => {
-      const func = dados.funcionarias.find(f => f.id === av.funcionaria_id);
-      const estrelas = renderStarsHtml(av.estrelas || 0);
-      const data = av.created_at
-        ? new Date(av.created_at).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' })
-        : '';
-      const chatCount = dados.avaliacoes_chat.filter(c => c.avaliacao_id === av.id).length;
-      const fotos = (av.fotos_url || '').split(',').map(f => f.trim()).filter(Boolean);
+      // Cada cartão é isolado num try/catch: se um registo tiver dados
+      // inesperados/corrompidos, não deve deitar abaixo a lista inteira
+      // (era isto que fazia as avaliações "desaparecerem" do ecrã).
+      try {
+        const func = dados.funcionarias.find(f => f.id === av.funcionaria_id);
+        const estrelas = renderStarsHtml(av.estrelas || 0);
+        const data = av.created_at
+          ? new Date(av.created_at).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' })
+          : '';
+        const chatCount = dados.avaliacoes_chat.filter(c => c.avaliacao_id === av.id).length;
+        const fotos = parseFotosUrl(av.fotos_url);
+        const nomeCliente = av.cliente_nome || 'Anónimo';
 
-      return `
-        <div class="avaliacao-card" onclick="abrirModalAvaliacao('${av.id}')">
-          <div class="av-header">
-            <div class="av-autor">
-              <div class="av-avatar">${av.cliente_nome[0].toUpperCase()}</div>
-              <div>
-                <strong>${av.cliente_nome}</strong>
-                <div class="av-data">${data}</div>
+        return `
+          <div class="avaliacao-card" onclick="abrirModalAvaliacao('${av.id}')">
+            <div class="av-header">
+              <div class="av-autor">
+                <div class="av-avatar">${nomeCliente[0].toUpperCase()}</div>
+                <div>
+                  <strong>${nomeCliente}</strong>
+                  <div class="av-data">${data}</div>
+                </div>
               </div>
+              <div class="av-estrelas">${estrelas}</div>
             </div>
-            <div class="av-estrelas">${estrelas}</div>
-          </div>
-          ${func ? `<div class="av-func-tag"><i data-lucide="user" style="width:12px;height:12px;vertical-align:middle;margin-right:4px"></i>${func.nome}</div>` : ''}
-          ${av.comentario ? `<div class="av-comentario">${av.comentario}</div>` : ''}
-          ${fotos.length ? `<div class="av-fotos-row">${fotos.slice(0,3).map(f => `<img src="${f}" class="av-foto-thumb" onerror="this.style.display='none'" />`).join('')}${fotos.length > 3 ? `<span class="av-fotos-mais">+${fotos.length - 3}</span>` : ''}</div>` : ''}
-          <div class="av-footer">
-            <span class="av-chat-count"><i data-lucide="message-circle" style="width:13px;height:13px;vertical-align:middle;margin-right:4px"></i>${chatCount} resposta${chatCount !== 1 ? 's' : ''}</span>
-            ${av.respondido ? '<span class="mensagem-badge-resp">Respondido</span>' : ''}
-          </div>
-        </div>`;
+            ${func ? `<div class="av-func-tag"><i data-lucide="user" style="width:12px;height:12px;vertical-align:middle;margin-right:4px"></i>${func.nome}</div>` : ''}
+            ${av.comentario ? `<div class="av-comentario">${av.comentario}</div>` : ''}
+            ${fotos.length ? `<div class="av-fotos-row">${fotos.slice(0,3).map(f => `<img src="${f}" class="av-foto-thumb" onerror="this.style.display='none'" />`).join('')}${fotos.length > 3 ? `<span class="av-fotos-mais">+${fotos.length - 3}</span>` : ''}</div>` : ''}
+            <div class="av-footer">
+              <span class="av-chat-count"><i data-lucide="message-circle" style="width:13px;height:13px;vertical-align:middle;margin-right:4px"></i>${chatCount} resposta${chatCount !== 1 ? 's' : ''}</span>
+              ${av.respondido ? '<span class="mensagem-badge-resp">Respondido</span>' : ''}
+            </div>
+          </div>`;
+      } catch (e) {
+        console.error('Avaliação com dados inválidos, ignorada:', av, e);
+        return '';
+      }
     }).join('');
   }
   safeCreateIcons();
@@ -2582,7 +2655,7 @@ async function abrirModalAvaliacao(id) {
     ? new Date(av.created_at).toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     : '';
 
-  const fotos = (av.fotos_url || '').split(',').map(f => f.trim()).filter(Boolean);
+  const fotos = parseFotosUrl(av.fotos_url);
 
   document.getElementById('modal-av-detalhe').innerHTML = `
     <div class="av-detail-header">
@@ -2647,6 +2720,15 @@ async function enviarChatAvaliacao() {
 
 // Submissão pública de avaliação (site público)
 async function enviarAvaliacaoPublica() {
+  // Só clientes com pelo menos um serviço já aceite/agendado podem avaliar.
+  // (Isto é só a barreira do lado do browser — a proteção real tem de estar
+  // também numa política RLS na tabela "avaliacoes" no Supabase, porque
+  // qualquer pessoa pode chamar a API diretamente sem passar por aqui.)
+  if (!clienteElegivelParaAvaliar()) {
+    mostrarToast('Só clientes com um orçamento aceite podem deixar uma avaliação.', 'error');
+    return;
+  }
+
   const nome        = document.getElementById('av-pub-nome').value.trim();
   const email       = document.getElementById('av-pub-email').value.trim();
   const funcionariaId = document.getElementById('av-pub-funcionaria').value;
@@ -2657,7 +2739,10 @@ async function enviarAvaliacaoPublica() {
   if (!nome) { mostrarToast('Introduza o seu nome.', 'error'); return; }
   if (!estrelas) { mostrarToast('Seleccione uma classificação de estrelas.', 'error'); return; }
 
-  // Fotos: converte para base64 (máx 3 fotos, 500KB cada)
+  // Fotos: converte para base64 (máx 3 fotos, 500KB cada) e guarda como JSON.
+  // (Guardar como JSON evita o bug antigo em que juntar as fotos com ","
+  // corrompia cada imagem, porque um data-URL em base64 já contém uma
+  // vírgula logo a seguir a "base64,".)
   let fotosUrl = '';
   if (fotosInput && fotosInput.files.length) {
     const files = [...fotosInput.files].slice(0, 3);
@@ -2667,30 +2752,47 @@ async function enviarAvaliacaoPublica() {
       reader.onerror = () => res('');
       reader.readAsDataURL(f);
     })));
-    fotosUrl = b64List.filter(Boolean).join(',');
+    fotosUrl = JSON.stringify(b64List.filter(Boolean));
   }
 
   const newId = gerarId();
   const obj   = { id: newId, cliente_nome: nome, cliente_email: email, funcionaria_id: funcionariaId || null, estrelas, comentario, fotos_url: fotosUrl };
 
-  const { error } = await sb.from('avaliacoes').insert(obj);
-  if (error) { mostrarToast('Erro ao enviar avaliação: ' + error.message, 'error'); return; }
+  try {
+    const { error } = await sb.from('avaliacoes').insert(obj);
+    if (error) { mostrarToast('Erro ao enviar avaliação: ' + error.message, 'error'); return; }
 
-  dados.avaliacoes.unshift({ ...obj, created_at: new Date().toISOString() });
-  atualizarStatsPublicas();
-  renderPublicAvaliacoes();
+    // Vai buscar a lista real à base de dados em vez de confiar só na
+    // atualização local — garante que o ecrã fica sempre sincronizado com
+    // o que foi realmente guardado, mesmo que algo corra mal a meio.
+    const { data: avData, error: avErr } = await sb.from('avaliacoes').select('*').order('created_at', { ascending: false });
+    if (!avErr && avData) {
+      dados.avaliacoes = avData;
+    } else {
+      dados.avaliacoes.unshift({ ...obj, created_at: new Date().toISOString() });
+    }
 
-  // Reset form
-  ['av-pub-nome','av-pub-email','av-pub-comentario'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
-  avaliacaoEstrelasSelecionadas = 0;
-  document.querySelectorAll('#av-estrelas-input .star-btn').forEach(s => s.classList.remove('filled'));
-  if (fotosInput) fotosInput.value = '';
-  document.getElementById('av-pub-fotos-preview').innerHTML = '';
+    // Reset form
+    ['av-pub-nome','av-pub-email','av-pub-comentario'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    avaliacaoEstrelasSelecionadas = 0;
+    document.querySelectorAll('#av-estrelas-input .star-btn').forEach(s => s.classList.remove('filled'));
+    if (fotosInput) fotosInput.value = '';
+    const previewEl = document.getElementById('av-pub-fotos-preview');
+    if (previewEl) previewEl.innerHTML = '';
 
-  mostrarToast('Avaliação enviada! Obrigado pelo seu feedback.', 'success');
+    mostrarToast('Avaliação enviada! Obrigado pelo seu feedback.', 'success');
+  } catch (err) {
+    console.error('Erro inesperado ao enviar avaliação:', err);
+    mostrarToast('Erro inesperado ao enviar avaliação. Tente novamente.', 'error');
+  } finally {
+    // Corre SEMPRE, mesmo se algo acima falhar — assim a lista de
+    // avaliações nunca fica em branco no ecrã depois de submeter.
+    atualizarStatsPublicas();
+    renderPublicAvaliacoes();
+  }
 }
 
 // Mostra avaliações na secção pública
@@ -2712,38 +2814,46 @@ function renderPublicAvaliacoes() {
   const visiveis = dados.avaliacoes.slice(0, pubAvaliacoesLimite);
 
   container.innerHTML = visiveis.map(av => {
-    const func = dados.funcionarias.find(f => f.id === av.funcionaria_id);
-    const estrelas = renderStarsHtml(av.estrelas || 0);
-    const data = av.created_at
-      ? new Date(av.created_at).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' })
-      : '';
-    const fotos = (av.fotos_url || '').split(',').map(f => f.trim()).filter(Boolean);
-    const msgs = dados.avaliacoes_chat.filter(c => c.avaliacao_id === av.id);
+    // Cada cartão é isolado num try/catch: um registo com dados
+    // inesperados nunca deve apagar o mural inteiro de avaliações.
+    try {
+      const func = dados.funcionarias.find(f => f.id === av.funcionaria_id);
+      const estrelas = renderStarsHtml(av.estrelas || 0);
+      const data = av.created_at
+        ? new Date(av.created_at).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' })
+        : '';
+      const fotos = parseFotosUrl(av.fotos_url);
+      const msgs = dados.avaliacoes_chat.filter(c => c.avaliacao_id === av.id);
+      const nomeCliente = av.cliente_nome || 'Anónimo';
 
-    return `
-      <div class="pub-av-card">
-        <div class="pub-av-top">
-          <div class="pub-av-avatar">${av.cliente_nome[0].toUpperCase()}</div>
-          <div>
-            <strong class="pub-av-nome">${av.cliente_nome}</strong>
-            <div class="pub-av-data">${data}</div>
+      return `
+        <div class="pub-av-card">
+          <div class="pub-av-top">
+            <div class="pub-av-avatar">${nomeCliente[0].toUpperCase()}</div>
+            <div>
+              <strong class="pub-av-nome">${nomeCliente}</strong>
+              <div class="pub-av-data">${data}</div>
+            </div>
+            <div class="pub-av-estrelas">${estrelas}</div>
           </div>
-          <div class="pub-av-estrelas">${estrelas}</div>
-        </div>
-        ${func ? `<div class="pub-av-func-tag">🧹 ${func.nome}</div>` : ''}
-        ${av.comentario ? `<p class="pub-av-texto">${av.comentario}</p>` : ''}
-        ${fotos.length ? `<div class="av-fotos-row">${fotos.slice(0, 3).map(f => `<a href="${f}" target="_blank"><img src="${f}" class="av-foto-thumb" onerror="this.style.display='none'" /></a>`).join('')}${fotos.length > 3 ? `<span class="av-fotos-mais">+${fotos.length - 3}</span>` : ''}</div>` : ''}
+          ${func ? `<div class="pub-av-func-tag">🧹 ${func.nome}</div>` : ''}
+          ${av.comentario ? `<p class="pub-av-texto">${av.comentario}</p>` : ''}
+          ${fotos.length ? `<div class="av-fotos-row">${fotos.slice(0, 3).map(f => `<a href="${f}" target="_blank"><img src="${f}" class="av-foto-thumb" onerror="this.style.display='none'" /></a>`).join('')}${fotos.length > 3 ? `<span class="av-fotos-mais">+${fotos.length - 3}</span>` : ''}</div>` : ''}
 
-        <div class="pub-av-thread">
-          <div class="av-chat-msgs pub-av-chat-msgs" id="pub-chat-${av.id}">${renderMensagensThreadPublico(msgs)}</div>
-          <div class="av-chat-input-row">
-            <input type="text" id="pub-chat-nome-${av.id}" placeholder="O seu nome" class="pub-chat-nome-input" />
-            <input type="text" id="pub-chat-msg-${av.id}" placeholder="Escreva um comentário…"
-              onkeydown="if(event.key==='Enter'){enviarRespostaPublica('${av.id}')}" />
-            <button class="btn-icon" onclick="enviarRespostaPublica('${av.id}')" title="Enviar"><i data-lucide="send"></i></button>
+          <div class="pub-av-thread">
+            <div class="av-chat-msgs pub-av-chat-msgs" id="pub-chat-${av.id}">${renderMensagensThreadPublico(msgs)}</div>
+            <div class="av-chat-input-row">
+              <input type="text" id="pub-chat-nome-${av.id}" placeholder="O seu nome" class="pub-chat-nome-input" />
+              <input type="text" id="pub-chat-msg-${av.id}" placeholder="Escreva um comentário…"
+                onkeydown="if(event.key==='Enter'){enviarRespostaPublica('${av.id}')}" />
+              <button class="btn-icon" onclick="enviarRespostaPublica('${av.id}')" title="Enviar"><i data-lucide="send"></i></button>
+            </div>
           </div>
-        </div>
-      </div>`;
+        </div>`;
+    } catch (e) {
+      console.error('Avaliação pública com dados inválidos, ignorada:', av, e);
+      return '';
+    }
   }).join('');
 
   if (vermaisWrap) {
@@ -2812,11 +2922,40 @@ async function enviarRespostaPublica(avId) {
 function previewAvaliacaoFotos(event) {
   const preview = document.getElementById('av-pub-fotos-preview');
   if (!preview) return;
-  const files = [...event.target.files].slice(0, 3);
+  const todosFicheiros = [...event.target.files];
+  const files = todosFicheiros.slice(0, 3);
+  if (todosFicheiros.length > 3) {
+    mostrarToast('Só pode adicionar até 3 fotos. As restantes foram ignoradas.', 'error');
+  }
   preview.innerHTML = files.map(f => {
     const url = URL.createObjectURL(f);
-    return `<img src="${url}" class="av-foto-preview-thumb" />`;
+    return `<div class="av-foto-preview-wrap"><img src="${url}" class="av-foto-preview-thumb" /></div>`;
   }).join('');
+}
+
+/* Arrastar-e-largar fotos para a avaliação pública */
+function avFotosDragOver(event) {
+  event.preventDefault();
+  event.currentTarget.classList.add('dragover');
+}
+function avFotosDragLeave(event) {
+  event.currentTarget.classList.remove('dragover');
+}
+function avFotosDrop(event) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('dragover');
+  const input = document.getElementById('av-pub-fotos');
+  if (!input) return;
+
+  const ficheiros = [...event.dataTransfer.files].filter(f => f.type.startsWith('image/'));
+  if (!ficheiros.length) { mostrarToast('Arraste apenas ficheiros de imagem.', 'error'); return; }
+
+  // Constrói uma FileList "a sério" para o <input type="file">, para que o
+  // resto do fluxo de envio (que lê fotosInput.files) funcione sem alterações.
+  const dt = new DataTransfer();
+  ficheiros.slice(0, 3).forEach(f => dt.items.add(f));
+  input.files = dt.files;
+  previewAvaliacaoFotos({ target: input });
 }
 
 async function carregarAvaliacoesApp() {
