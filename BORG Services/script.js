@@ -2694,20 +2694,32 @@ async function enviarAvaliacaoPublica() {
 }
 
 // Mostra avaliações na secção pública
+// Quantas avaliações mostrar de cada vez no mural público (o resto
+// entra ao clicar em "Ver mais avaliações").
+let pubAvaliacoesLimite = 9;
+
 function renderPublicAvaliacoes() {
   const container = document.getElementById('pub-avaliacoes-lista');
+  const vermaisWrap = document.getElementById('pub-avaliacoes-vermais');
   if (!container) return;
-  const visíveis = dados.avaliacoes.slice(0, 6);
-  if (!visíveis.length) {
+
+  if (!dados.avaliacoes.length) {
     container.innerHTML = '<p class="pub-av-empty">Seja o primeiro a deixar uma avaliação!</p>';
+    if (vermaisWrap) vermaisWrap.innerHTML = '';
     return;
   }
-  container.innerHTML = visíveis.map(av => {
+
+  const visiveis = dados.avaliacoes.slice(0, pubAvaliacoesLimite);
+
+  container.innerHTML = visiveis.map(av => {
     const func = dados.funcionarias.find(f => f.id === av.funcionaria_id);
     const estrelas = renderStarsHtml(av.estrelas || 0);
     const data = av.created_at
       ? new Date(av.created_at).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' })
       : '';
+    const fotos = (av.fotos_url || '').split(',').map(f => f.trim()).filter(Boolean);
+    const msgs = dados.avaliacoes_chat.filter(c => c.avaliacao_id === av.id);
+
     return `
       <div class="pub-av-card">
         <div class="pub-av-top">
@@ -2720,8 +2732,80 @@ function renderPublicAvaliacoes() {
         </div>
         ${func ? `<div class="pub-av-func-tag">🧹 ${func.nome}</div>` : ''}
         ${av.comentario ? `<p class="pub-av-texto">${av.comentario}</p>` : ''}
+        ${fotos.length ? `<div class="av-fotos-row">${fotos.slice(0, 3).map(f => `<a href="${f}" target="_blank"><img src="${f}" class="av-foto-thumb" onerror="this.style.display='none'" /></a>`).join('')}${fotos.length > 3 ? `<span class="av-fotos-mais">+${fotos.length - 3}</span>` : ''}</div>` : ''}
+
+        <div class="pub-av-thread">
+          <div class="av-chat-msgs pub-av-chat-msgs" id="pub-chat-${av.id}">${renderMensagensThreadPublico(msgs)}</div>
+          <div class="av-chat-input-row">
+            <input type="text" id="pub-chat-nome-${av.id}" placeholder="O seu nome" class="pub-chat-nome-input" />
+            <input type="text" id="pub-chat-msg-${av.id}" placeholder="Escreva um comentário…"
+              onkeydown="if(event.key==='Enter'){enviarRespostaPublica('${av.id}')}" />
+            <button class="btn-icon" onclick="enviarRespostaPublica('${av.id}')" title="Enviar"><i data-lucide="send"></i></button>
+          </div>
+        </div>
       </div>`;
   }).join('');
+
+  if (vermaisWrap) {
+    const faltam = dados.avaliacoes.length - visiveis.length;
+    vermaisWrap.innerHTML = faltam > 0
+      ? `<button class="btn-secondary" onclick="verMaisAvaliacoesPublico()">Ver mais avaliações (+${faltam})</button>`
+      : '';
+  }
+
+  safeCreateIcons();
+}
+
+function verMaisAvaliacoesPublico() {
+  pubAvaliacoesLimite += 9;
+  renderPublicAvaliacoes();
+}
+
+// Renderiza as mensagens da conversa por baixo de uma avaliação pública.
+// Reutiliza o mesmo estilo de balões já usado no chat interno da equipa —
+// mensagens de membros da equipa (nome coincide com um utilizador do
+// sistema) ficam destacadas para se distinguirem de comentários de visitantes.
+function renderMensagensThreadPublico(msgs) {
+  if (!msgs.length) return '<p class="chat-empty">Ainda sem comentários. Seja o primeiro a responder!</p>';
+  return msgs.map(m => {
+    const hora = m.created_at
+      ? new Date(m.created_at).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })
+      : '';
+    const isEquipa = dados.usuarios.some(u => u.nome === m.autor_nome);
+    return `
+      <div class="chat-msg ${isEquipa ? 'equipa' : 'cliente'}">
+        <div class="chat-msg-autor">${m.autor_nome}${isEquipa ? ' · Equipa BORG' : ''}</div>
+        <div class="chat-msg-texto">${m.mensagem}</div>
+        <div class="chat-msg-hora">${hora}</div>
+      </div>`;
+  }).join('');
+}
+
+// Qualquer visitante do site pode comentar/responder numa avaliação —
+// usa a mesma tabela avaliacoes_chat do chat interno, só que aqui
+// aberta ao público (ver migração SQL correspondente).
+async function enviarRespostaPublica(avId) {
+  const nomeInput = document.getElementById(`pub-chat-nome-${avId}`);
+  const msgInput  = document.getElementById(`pub-chat-msg-${avId}`);
+  const nome  = (nomeInput?.value || '').trim();
+  const texto = (msgInput?.value || '').trim();
+
+  if (!nome)  { mostrarToast('Escreva o seu nome para comentar.', 'error'); return; }
+  if (!texto) { mostrarToast('Escreva um comentário antes de enviar.', 'error'); return; }
+
+  const newId = gerarId();
+  const obj   = { id: newId, avaliacao_id: avId, autor_nome: nome, mensagem: texto };
+
+  const { error } = await sb.from('avaliacoes_chat').insert(obj);
+  if (error) {
+    console.error('Erro ao enviar comentário público:', error);
+    mostrarToast('Erro ao enviar comentário: ' + (error.message || 'desconhecido'), 'error');
+    return;
+  }
+
+  dados.avaliacoes_chat.push({ ...obj, created_at: new Date().toISOString() });
+  msgInput.value = '';
+  renderPublicAvaliacoes();
 }
 
 // Pré-visualizar fotos seleccionadas
