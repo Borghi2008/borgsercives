@@ -1720,7 +1720,8 @@ async function aplicarSessao(session) {
     // pelo menos um orçamento aceite/serviço agendado — é essa a condição
     // para poder deixar uma avaliação no site público.
     if (authCliente) {
-      const { data: servicos } = await sb.from('servicos').select('id').eq('cliente_id', authCliente.id);
+      const { data: servicos, error: erroServicos } = await sb.from('servicos').select('id').eq('cliente_id', authCliente.id);
+      if (erroServicos) console.error('Erro ao verificar elegibilidade para avaliar:', erroServicos.message);
       dados.cliente_servicos = servicos || [];
     } else {
       dados.cliente_servicos = [];
@@ -1751,8 +1752,8 @@ function atualizarFormularioAvaliacao() {
   const elegivel = clienteElegivelParaAvaliar();
 
   campos.style.display     = elegivel ? '' : 'none';
-  semServico.style.display = (authCliente && !elegivel) ? 'block' : 'none';
-  semSessao.style.display  = (!authCliente) ? 'block' : 'none';
+  semServico.style.display = (authCliente && !elegivel) ? '' : 'none';
+  semSessao.style.display  = (!authCliente) ? '' : 'none';
 
   if (elegivel) {
     // Nome e email ficam bloqueados aos dados da conta — impede que alguém
@@ -2328,6 +2329,7 @@ async function carregarDadosCliente() {
   renderClienteServicos();
   renderClienteChat();
   marcarMensagensClienteLidas('cliente');
+  atualizarFormularioAvaliacao();
   safeCreateIcons();
 }
 
