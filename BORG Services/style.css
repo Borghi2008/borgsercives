@@ -1310,6 +1310,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 .pub-av-texto { font-size: 13px; color: var(--color-muted); line-height: 1.6; margin: 0; }
 
+.pub-av-thread { border-top: 1px solid var(--color-border); margin-top: 14px; padding-top: 14px; }
+.pub-av-chat-msgs { max-height: 170px; }
+.pub-chat-nome-input { max-width: 100px; flex: 0 0 100px; }
+.pub-av-vermais-wrap { text-align: center; margin-top: -24px; margin-bottom: 44px; }
+
 /* Review submission form */
 .pub-av-form-card {
   background: var(--color-surface);
