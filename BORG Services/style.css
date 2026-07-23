@@ -1370,6 +1370,16 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   width: 72px; height: 72px; object-fit: cover; display: block;
   border-radius: var(--radius-sm); border: 1px solid var(--color-border);
 }
+.av-foto-preview-remover {
+  position: absolute; top: -6px; right: -6px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--color-danger); color: #fff;
+  border: 2px solid var(--color-surface); cursor: pointer;
+  font-size: 13px; line-height: 1; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0;
+}
+.av-foto-preview-remover:hover { background: #C93A3E; }
 
 /* App reviews list */
 .avaliacoes-lista-app {
@@ -1414,6 +1424,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .av-foto-thumb {
   width: 48px; height: 48px; object-fit: cover;
   border-radius: 6px; border: 1px solid var(--color-border);
+  cursor: zoom-in;
 }
 .av-fotos-mais {
   font-size: 11px; color: var(--color-muted);
@@ -1428,6 +1439,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 /* Avaliacao detail modal */
 .modal-avaliacao-lg { max-width: 720px; }
+.modal-foto-av { max-width: 640px; }
+.modal-foto-av-body { padding: 0; background: #0A1B30; align-items: center; justify-content: center; display: flex; }
+.modal-foto-av-body img { width: 100%; max-height: 78vh; object-fit: contain; display: block; }
 .modal-av-body { display: flex; flex-direction: column; gap: 20px; }
 .av-detail-header {
   display: flex; justify-content: space-between; align-items: flex-start;
