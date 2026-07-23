@@ -16,7 +16,7 @@
   <meta property="og:url" content="https://borgservices.co.uk/" />
   <meta property="og:image" content="https://borgservices.co.uk/img/Borg_Logo.webp" />
   <meta name="twitter:card" content="summary" />
-  <link rel="stylesheet" href="style.css?v=9" />
+  <link rel="stylesheet" href="style.css?v=10" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lexend:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -267,25 +267,11 @@
         <div id="pub-avaliacoes-lista" class="pub-av-grid"></div>
         <div id="pub-avaliacoes-vermais" class="pub-av-vermais-wrap"></div>
 
-        <!-- Formulário de Nova Avaliação -->
+        <!-- Formulário de Nova Avaliação — aberto a qualquer visitante -->
         <div class="pub-av-form-card">
           <h3>Deixar a Sua Avaliação</h3>
 
-          <!-- Estado 1: visitante sem sessão iniciada (visível por omissão até o JS confirmar a sessão) -->
-          <div id="pub-av-form-login" class="pub-av-form-msg">
-            <i data-lucide="lock"></i>
-            <p>Só clientes com um orçamento aceite podem deixar uma avaliação.</p>
-            <button class="btn-primary" onclick="abrirLoginPublico()">Entrar / Criar Conta</button>
-          </div>
-
-          <!-- Estado 2: cliente com sessão, mas ainda sem serviço agendado/aceite -->
-          <div id="pub-av-form-locked" class="pub-av-form-msg" style="display:none;">
-            <i data-lucide="clock"></i>
-            <p>A sua conta ainda não tem nenhum orçamento aceite. Assim que tiver um serviço agendado connosco, pode deixar aqui a sua avaliação.</p>
-          </div>
-
-          <!-- Estado 3: cliente elegível -->
-          <div id="pub-av-form-fields" style="display:none;">
+          <div id="pub-av-form-fields">
             <div class="form-group">
               <label>Classificação *</label>
               <div id="av-estrelas-input" class="av-estrelas-interactive"></div>
@@ -1283,7 +1269,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js?v=9"></script>
+  <script src="script.js?v=10"></script>
 </body>
 
 </html>
