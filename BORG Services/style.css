@@ -65,6 +65,16 @@ html, body {
   max-width: 100%;
 }
 
+/* A navbar pública é "sticky" (fica fixa no topo, 64px de altura, ver
+   .pub-nav mais abaixo). Sem isto, clicar em "Avaliações" ou noutro link
+   do menu fazia o topo da secção ficar escondido atrás da navbar — a
+   página "saltava" para lá mas o início real da secção nunca aparecia,
+   parecendo que não estava a centrar/alinhar corretamente. Isto aplica-se
+   tanto aos links <a href="#..."> como ao scrollIntoView() do smoothScroll(). */
+html {
+  scroll-padding-top: 84px;
+}
+
 img { max-width: 100%; }
 
 h1, h2, h3, .logo-text, .login-brand, .stat-value,
