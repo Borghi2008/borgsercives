@@ -2776,6 +2776,9 @@ async function enviarAvaliacaoPublica() {
 // Quantas avaliações mostrar de cada vez no mural público (o resto
 // entra ao clicar em "Ver mais avaliações").
 let pubAvaliacoesLimite = 9;
+// Guarda que avaliações têm a caixa de comentários aberta — fica vazio
+// por omissão para as avaliações não ocuparem tanto espaço na aba.
+let pubAvThreadsAbertos = new Set();
 
 function renderPublicAvaliacoes() {
   const container = document.getElementById('pub-avaliacoes-lista');
@@ -2802,6 +2805,10 @@ function renderPublicAvaliacoes() {
       const fotos = parseFotosUrl(av.fotos_url);
       const msgs = dados.avaliacoes_chat.filter(c => c.avaliacao_id === av.id);
       const nomeCliente = av.cliente_nome || 'Anónimo';
+      const aberto = pubAvThreadsAbertos.has(av.id);
+      const labelToggle = msgs.length
+        ? `${msgs.length} coment${msgs.length > 1 ? 'ários' : 'ário'}`
+        : 'Comentar';
 
       return `
         <div class="pub-av-card">
@@ -2818,13 +2825,19 @@ function renderPublicAvaliacoes() {
           ${fotos.length ? `<div class="av-fotos-row">${fotos.slice(0, 3).map(f => `<img src="${f}" class="av-foto-thumb" onclick="abrirFotoAvaliacao('${f}')" onerror="this.style.display='none'" />`).join('')}${fotos.length > 3 ? `<span class="av-fotos-mais">+${fotos.length - 3}</span>` : ''}</div>` : ''}
 
           <div class="pub-av-thread">
-            <div class="av-chat-msgs pub-av-chat-msgs" id="pub-chat-${av.id}">${renderMensagensThreadPublico(msgs)}</div>
-            <div class="av-chat-input-row">
-              <input type="text" id="pub-chat-nome-${av.id}" placeholder="O seu nome" class="pub-chat-nome-input" />
-              <input type="text" id="pub-chat-msg-${av.id}" placeholder="Escreva um comentário…"
-                onkeydown="if(event.key==='Enter'){enviarRespostaPublica('${av.id}')}" />
-              <button class="btn-icon" onclick="enviarRespostaPublica('${av.id}')" title="Enviar"><i data-lucide="send"></i></button>
-            </div>
+            <button type="button" class="pub-av-thread-toggle${aberto ? ' is-open' : ''}" onclick="togglePubAvThread('${av.id}')">
+              <i data-lucide="message-circle"></i><span>${labelToggle}</span>
+            </button>
+            ${aberto ? `
+            <div class="pub-av-thread-body">
+              <div class="av-chat-msgs pub-av-chat-msgs" id="pub-chat-${av.id}">${renderMensagensThreadPublico(msgs)}</div>
+              <div class="av-chat-input-row">
+                <input type="text" id="pub-chat-nome-${av.id}" placeholder="O seu nome" class="pub-chat-nome-input" />
+                <input type="text" id="pub-chat-msg-${av.id}" placeholder="Escreva um comentário…"
+                  onkeydown="if(event.key==='Enter'){enviarRespostaPublica('${av.id}')}" />
+                <button class="btn-icon" onclick="enviarRespostaPublica('${av.id}')" title="Enviar"><i data-lucide="send"></i></button>
+              </div>
+            </div>` : ''}
           </div>
         </div>`;
     } catch (e) {
@@ -2845,6 +2858,13 @@ function renderPublicAvaliacoes() {
 
 function verMaisAvaliacoesPublico() {
   pubAvaliacoesLimite += 9;
+  renderPublicAvaliacoes();
+}
+
+// Abre/fecha a caixa de comentários de uma avaliação pública.
+function togglePubAvThread(avId) {
+  if (pubAvThreadsAbertos.has(avId)) pubAvThreadsAbertos.delete(avId);
+  else pubAvThreadsAbertos.add(avId);
   renderPublicAvaliacoes();
 }
 
@@ -2892,6 +2912,7 @@ async function enviarRespostaPublica(avId) {
 
   dados.avaliacoes_chat.push({ ...obj, created_at: new Date().toISOString() });
   msgInput.value = '';
+  pubAvThreadsAbertos.add(avId);
   renderPublicAvaliacoes();
 }
 
