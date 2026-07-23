@@ -2535,10 +2535,20 @@ async function carregarMensagensClientesApp() {
   if (chatClienteAlvoId) carregarMensagemCliente_Staff();
 }
 
-// Scroll suave para uma secção pelo id
+// Scroll suave para uma secção pelo id.
+// Não usamos só scrollIntoView({block:'start'}) porque a navbar pública é
+// "sticky" (fica fixa no topo, 64px de altura) — isso escondia sempre o
+// início real da secção atrás da navbar, dando a impressão de que a
+// página "não centrava" no sítio certo. Calculamos a posição à mão e
+// descontamos a altura da navbar, para o topo da secção ficar sempre
+// visível logo abaixo dela.
 function smoothScroll(id) {
   const el = document.getElementById(id);
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (!el) return;
+  const nav = document.getElementById('pubNav');
+  const folga = (nav ? nav.offsetHeight : 64) + 16; // + respiro
+  const destino = el.getBoundingClientRect().top + window.pageYOffset - folga;
+  window.scrollTo({ top: Math.max(destino, 0), behavior: 'smooth' });
 }
 
 // Menu hamburger mobile (site público)
