@@ -2517,6 +2517,20 @@ function closePubMenu() {
 
 /* ── 10.3 Avaliações ─────────────────────────────────────── */
 
+// Mostra uma foto de avaliação em tamanho completo num modal interno.
+// IMPORTANTE: não usamos <a href="data:..." target="_blank"> para isto —
+// os browsers modernos (Chrome incluído) BLOQUEIAM navegação direta para
+// URLs "data:" abertas por um link, por segurança. Ao clicar, o separador
+// novo ficava em branco ou saltava para uma página qualquer (ex.: o
+// separador de novo separador do próprio browser) em vez de mostrar a
+// foto — daí parecer um "redireccionamento aleatório". Mostrar a imagem
+// dentro de um modal evita esse bloqueio por completo.
+function abrirFotoAvaliacao(url) {
+  const img = document.getElementById('modal-foto-avaliacao-img');
+  if (img) img.src = url;
+  abrirModal('modal-foto-avaliacao');
+}
+
 // Converte a lista de fotos de uma avaliação (guardada como string) num array.
 // IMPORTANTE: as fotos são guardadas como JSON (ex.: '["data:image/...","data:image/..."]').
 // Antes usava-se split(',') para separar várias fotos, mas cada data-URL em
@@ -2633,7 +2647,7 @@ async function abrirModalAvaliacao(id) {
       ${func ? `<div class="av-func-pill"><i data-lucide="user" style="width:13px;height:13px;vertical-align:middle;margin-right:5px"></i>${func.nome}</div>` : ''}
     </div>
     ${av.comentario ? `<div class="av-comentario-full">${av.comentario}</div>` : ''}
-    ${fotos.length ? `<div class="av-fotos-grid">${fotos.map(f => `<a href="${f}" target="_blank"><img src="${f}" class="av-foto-full" onerror="this.parentElement.style.display='none'" /></a>`).join('')}</div>` : ''}`;
+    ${fotos.length ? `<div class="av-fotos-grid">${fotos.map(f => `<img src="${f}" class="av-foto-full" onclick="abrirFotoAvaliacao('${f}')" onerror="this.style.display='none'" />`).join('')}</div>` : ''}`;
 
   const delBtnAv = document.getElementById('btn-eliminar-avaliacao');
   if (delBtnAv) delBtnAv.style.display = usuarioEhGestorPlus() ? 'inline-flex' : 'none';
@@ -2744,9 +2758,7 @@ async function enviarAvaliacaoPublica() {
     });
     avaliacaoEstrelasSelecionadas = 0;
     document.querySelectorAll('#av-estrelas-input .star-btn').forEach(s => s.classList.remove('filled'));
-    if (fotosInput) fotosInput.value = '';
-    const previewEl = document.getElementById('av-pub-fotos-preview');
-    if (previewEl) previewEl.innerHTML = '';
+    avPubFotosLimpar();
 
     mostrarToast('Avaliação enviada! Obrigado pelo seu feedback.', 'success');
   } catch (err) {
@@ -2803,7 +2815,7 @@ function renderPublicAvaliacoes() {
           </div>
           ${func ? `<div class="pub-av-func-tag">🧹 ${func.nome}</div>` : ''}
           ${av.comentario ? `<p class="pub-av-texto">${av.comentario}</p>` : ''}
-          ${fotos.length ? `<div class="av-fotos-row">${fotos.slice(0, 3).map(f => `<a href="${f}" target="_blank"><img src="${f}" class="av-foto-thumb" onerror="this.style.display='none'" /></a>`).join('')}${fotos.length > 3 ? `<span class="av-fotos-mais">+${fotos.length - 3}</span>` : ''}</div>` : ''}
+          ${fotos.length ? `<div class="av-fotos-row">${fotos.slice(0, 3).map(f => `<img src="${f}" class="av-foto-thumb" onclick="abrirFotoAvaliacao('${f}')" onerror="this.style.display='none'" />`).join('')}${fotos.length > 3 ? `<span class="av-fotos-mais">+${fotos.length - 3}</span>` : ''}</div>` : ''}
 
           <div class="pub-av-thread">
             <div class="av-chat-msgs pub-av-chat-msgs" id="pub-chat-${av.id}">${renderMensagensThreadPublico(msgs)}</div>
@@ -2883,19 +2895,70 @@ async function enviarRespostaPublica(avId) {
   renderPublicAvaliacoes();
 }
 
-// Pré-visualizar fotos seleccionadas
-function previewAvaliacaoFotos(event) {
+// Fotos escolhidas para a nova avaliação pública.
+// Guardamos aqui, em vez de confiar só em input.files, porque cada nova
+// seleção (ou arrasto) SUBSTITUÍA sempre a escolha anterior — se a pessoa
+// escolhesse uma foto e depois quisesse adicionar outra, a primeira
+// desaparecia sem aviso. Era isso que dava a sensação de só ser possível
+// enviar 1 imagem. Isto acumula até 3, com opção de remover cada uma.
+let avPubFotosSelecionadas = [];
+
+// Mantém o <input type="file"> (lido em enviarAvaliacaoPublica) sincronizado
+// com o array acima, para o resto do fluxo de envio não precisar de mudar.
+function avPubFotosSincronizarInput() {
+  const input = document.getElementById('av-pub-fotos');
+  if (!input) return;
+  const dt = new DataTransfer();
+  avPubFotosSelecionadas.forEach(f => dt.items.add(f));
+  input.files = dt.files;
+}
+
+function avPubFotosAdicionar(novosFicheiros) {
+  const imagens = novosFicheiros.filter(f => f.type.startsWith('image/'));
+  if (!imagens.length) { mostrarToast('Escolha apenas ficheiros de imagem.', 'error'); return; }
+
+  const espacoLivre = 3 - avPubFotosSelecionadas.length;
+  if (espacoLivre <= 0) {
+    mostrarToast('Já tem 3 fotos escolhidas. Remova uma para adicionar outra.', 'error');
+    return;
+  }
+  if (imagens.length > espacoLivre) {
+    mostrarToast('Só pode ter até 3 fotos no total. As restantes foram ignoradas.', 'error');
+  }
+  avPubFotosSelecionadas.push(...imagens.slice(0, espacoLivre));
+  avPubFotosSincronizarInput();
+  renderAvPubFotosPreview();
+}
+
+function avPubFotosRemover(indice) {
+  avPubFotosSelecionadas.splice(indice, 1);
+  avPubFotosSincronizarInput();
+  renderAvPubFotosPreview();
+}
+
+function avPubFotosLimpar() {
+  avPubFotosSelecionadas = [];
+  avPubFotosSincronizarInput();
+  renderAvPubFotosPreview();
+}
+
+function renderAvPubFotosPreview() {
   const preview = document.getElementById('av-pub-fotos-preview');
   if (!preview) return;
-  const todosFicheiros = [...event.target.files];
-  const files = todosFicheiros.slice(0, 3);
-  if (todosFicheiros.length > 3) {
-    mostrarToast('Só pode adicionar até 3 fotos. As restantes foram ignoradas.', 'error');
-  }
-  preview.innerHTML = files.map(f => {
+  preview.innerHTML = avPubFotosSelecionadas.map((f, i) => {
     const url = URL.createObjectURL(f);
-    return `<div class="av-foto-preview-wrap"><img src="${url}" class="av-foto-preview-thumb" /></div>`;
+    return `<div class="av-foto-preview-wrap">
+      <img src="${url}" class="av-foto-preview-thumb" />
+      <button type="button" class="av-foto-preview-remover" onclick="avPubFotosRemover(${i})" title="Remover foto">×</button>
+    </div>`;
   }).join('');
+}
+
+// Chamado pelo <input type="file"> ao escolher fotos (pode ser chamado
+// várias vezes seguidas — cada vez ACRESCENTA às já escolhidas).
+function previewAvaliacaoFotos(event) {
+  const ficheiros = [...event.target.files];
+  if (ficheiros.length) avPubFotosAdicionar(ficheiros);
 }
 
 /* Arrastar-e-largar fotos para a avaliação pública */
@@ -2909,18 +2972,8 @@ function avFotosDragLeave(event) {
 function avFotosDrop(event) {
   event.preventDefault();
   event.currentTarget.classList.remove('dragover');
-  const input = document.getElementById('av-pub-fotos');
-  if (!input) return;
-
-  const ficheiros = [...event.dataTransfer.files].filter(f => f.type.startsWith('image/'));
-  if (!ficheiros.length) { mostrarToast('Arraste apenas ficheiros de imagem.', 'error'); return; }
-
-  // Constrói uma FileList "a sério" para o <input type="file">, para que o
-  // resto do fluxo de envio (que lê fotosInput.files) funcione sem alterações.
-  const dt = new DataTransfer();
-  ficheiros.slice(0, 3).forEach(f => dt.items.add(f));
-  input.files = dt.files;
-  previewAvaliacaoFotos({ target: input });
+  const ficheiros = [...event.dataTransfer.files];
+  if (ficheiros.length) avPubFotosAdicionar(ficheiros);
 }
 
 async function carregarAvaliacoesApp() {
