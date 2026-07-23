@@ -1715,54 +1715,11 @@ async function aplicarSessao(session) {
     authUsuario = perfil || null;
     const { data: cliente } = await sb.from('clientes').select('*').eq('usuario_id', session.user.id).maybeSingle();
     authCliente = cliente || null;
-
-    // Carrega já os serviços do cliente (se for cliente) para saber se tem
-    // pelo menos um orçamento aceite/serviço agendado — é essa a condição
-    // para poder deixar uma avaliação no site público.
-    if (authCliente) {
-      const { data: servicos, error: erroServicos } = await sb.from('servicos').select('id').eq('cliente_id', authCliente.id);
-      if (erroServicos) console.error('Erro ao verificar elegibilidade para avaliar:', erroServicos.message);
-      dados.cliente_servicos = servicos || [];
-    } else {
-      dados.cliente_servicos = [];
-    }
   } else {
     authUsuario = null;
     authCliente = null;
-    dados.cliente_servicos = [];
   }
   atualizarUsuarioLogado();
-  atualizarFormularioAvaliacao();
-}
-
-// Só clientes com pelo menos um serviço já aceite/agendado podem avaliar —
-// impede avaliações falsas de quem nunca foi cliente.
-function clienteElegivelParaAvaliar() {
-  return !!(authCliente && dados.cliente_servicos && dados.cliente_servicos.length > 0);
-}
-
-// Mostra o formulário de avaliação, uma mensagem de "ainda sem serviços", ou
-// um convite para entrar — consoante a sessão atual.
-function atualizarFormularioAvaliacao() {
-  const campos     = document.getElementById('pub-av-form-fields');
-  const semServico = document.getElementById('pub-av-form-locked');
-  const semSessao  = document.getElementById('pub-av-form-login');
-  if (!campos || !semServico || !semSessao) return;
-
-  const elegivel = clienteElegivelParaAvaliar();
-
-  campos.style.display     = elegivel ? '' : 'none';
-  semServico.style.display = (authCliente && !elegivel) ? '' : 'none';
-  semSessao.style.display  = (!authCliente) ? '' : 'none';
-
-  if (elegivel) {
-    // Nome e email ficam bloqueados aos dados da conta — impede que alguém
-    // se faça passar por outro cliente ao escrever uma avaliação.
-    const nomeEl  = document.getElementById('av-pub-nome');
-    const emailEl = document.getElementById('av-pub-email');
-    if (nomeEl)  { nomeEl.value  = authCliente.nome || '';    nomeEl.readOnly  = true; }
-    if (emailEl) { emailEl.value = (authUsuario && authUsuario.email) || ''; emailEl.readOnly = true; }
-  }
 }
 
 // Restaura a sessão ao carregar a página (equivalente ao antigo iniciarAuth).
@@ -1845,8 +1802,6 @@ function atualizarInterface() {
   });
   const prodBtn = document.getElementById('pub-produtos-gerir-btn');
   if (prodBtn) prodBtn.style.display = isGestorPlus ? 'block' : 'none';
-
-  atualizarFormularioAvaliacao();
 
   const loginBtn = document.getElementById('btnLoginHeader');
   if (!loginBtn) return;
@@ -2329,7 +2284,6 @@ async function carregarDadosCliente() {
   renderClienteServicos();
   renderClienteChat();
   marcarMensagensClienteLidas('cliente');
-  atualizarFormularioAvaliacao();
   safeCreateIcons();
 }
 
@@ -2732,15 +2686,6 @@ async function enviarChatAvaliacao() {
 
 // Submissão pública de avaliação (site público)
 async function enviarAvaliacaoPublica() {
-  // Só clientes com pelo menos um serviço já aceite/agendado podem avaliar.
-  // (Isto é só a barreira do lado do browser — a proteção real tem de estar
-  // também numa política RLS na tabela "avaliacoes" no Supabase, porque
-  // qualquer pessoa pode chamar a API diretamente sem passar por aqui.)
-  if (!clienteElegivelParaAvaliar()) {
-    mostrarToast('Só clientes com um orçamento aceite podem deixar uma avaliação.', 'error');
-    return;
-  }
-
   const nome        = document.getElementById('av-pub-nome').value.trim();
   const email       = document.getElementById('av-pub-email').value.trim();
   const funcionariaId = document.getElementById('av-pub-funcionaria').value;
@@ -2774,14 +2719,22 @@ async function enviarAvaliacaoPublica() {
     const { error } = await sb.from('avaliacoes').insert(obj);
     if (error) { mostrarToast('Erro ao enviar avaliação: ' + error.message, 'error'); return; }
 
-    // Vai buscar a lista real à base de dados em vez de confiar só na
-    // atualização local — garante que o ecrã fica sempre sincronizado com
-    // o que foi realmente guardado, mesmo que algo corra mal a meio.
+    // Acrescenta já a nova avaliação à lista local — o ecrã fica sempre
+    // correto mesmo que o passo de sincronização abaixo falhe ou demore.
+    dados.avaliacoes.unshift({ ...obj, created_at: new Date().toISOString() });
+
+    // Tenta sincronizar com o servidor a seguir, para apanhar avaliações
+    // de outras pessoas entretanto. IMPORTANTE: só substituímos a lista
+    // local se a resposta vier mesmo preenchida. Antes, qualquer resposta
+    // tecnicamente "sem erro" mas vazia (ex.: atraso/hiccup momentâneo do
+    // Supabase logo a seguir a um insert) substituía a lista inteira por
+    // um array vazio — era isso que fazia TODAS as avaliações desaparecerem
+    // do ecrã depois de enviar. Um array vazio nunca é motivo para apagar
+    // o que já sabemos que existe.
     const { data: avData, error: avErr } = await sb.from('avaliacoes').select('*').order('created_at', { ascending: false });
-    if (!avErr && avData) {
+    if (avErr) console.error('Erro ao sincronizar avaliações após envio:', avErr);
+    if (!avErr && avData && avData.length > 0) {
       dados.avaliacoes = avData;
-    } else {
-      dados.avaliacoes.unshift({ ...obj, created_at: new Date().toISOString() });
     }
 
     // Reset form
