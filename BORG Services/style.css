@@ -1,1538 +1,1288 @@
-/* ==========================================================
-   BORG Services — Folha de Estilos
-   ── ETAPA 1: Reset & Variáveis
-   ── ETAPA 2: Layout Base (Sidebar + Main)
-   ── ETAPA 3: Topbar
-   ── ETAPA 4: Páginas e Cabeçalhos
-   ── ETAPA 5: Cards e Estatísticas
-   ── ETAPA 6: Tabelas
-   ── ETAPA 7: Agenda Semanal
-   ── ETAPA 8: Funcionárias Grid
-   ── ETAPA 9: Relatórios
-   ── ETAPA 10: Modais & Formulários
-   ── ETAPA 11: Botões
-   ── ETAPA 12: Toast & Empty States
-   ── ETAPA 13: Auth (Login)
-   ── ETAPA 14: Site Público (Home)
-   ── ETAPA 15: Produtos
-   ── ETAPA 16: Mensagens/Chat
-   ── ETAPA 17: Edição Inline
-   ── ETAPA 18: Responsivo (Mobile)
-   ========================================================== */
-
-/* ── ETAPA 1: Reset & Variáveis ──────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --sidebar-w:  252px;
-  --topbar-h:   64px;
-
-  /* Paleta BORG */
-  --color-sidebar-bg:    #0A1B30;
-  --color-sidebar-bg-2:  #0F2745;
-  --color-sidebar-text:  #8CA3C2;
-  --color-sidebar-hover: #15315A;
-  --color-sidebar-active:#4FB6FF;
-  --color-accent:        #2F7FF0;
-  --color-accent-2:      #4FB6FF;
-  --color-accent-dark:   #1857B8;
-  --color-bg:            #F3F6FB;
-  --color-surface:       #FFFFFF;
-  --color-border:        #E4E9F1;
-  --color-text:          #142233;
-  --color-muted:         #647088;
-  --color-danger:        #E5484D;
-  --color-success:       #18A957;
-  --color-warning:       #F2994A;
-
-  --shadow-sm:   0 1px 2px rgba(15,30,55,.06),0 1px 1px rgba(15,30,55,.04);
-  --shadow-md:   0 8px 20px rgba(15,30,55,.08);
-  --shadow-lg:   0 24px 56px rgba(10,20,40,.20);
-  --shadow-glow: 0 0 0 1px rgba(79,182,255,.18),0 8px 24px rgba(47,127,240,.18);
-
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-}
-
-html, body {
-  height: 100%;
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 14px;
-  color: var(--color-text);
-  background: var(--color-bg);
-  overflow-x: hidden;
-  max-width: 100%;
-}
-
-/* A navbar pública é "sticky" (fica fixa no topo, 64px de altura, ver
-   .pub-nav mais abaixo). Sem isto, clicar em "Avaliações" ou noutro link
-   do menu fazia o topo da secção ficar escondido atrás da navbar — a
-   página "saltava" para lá mas o início real da secção nunca aparecia,
-   parecendo que não estava a centrar/alinhar corretamente. Isto aplica-se
-   tanto aos links <a href="#..."> como ao scrollIntoView() do smoothScroll(). */
-html {
-  scroll-padding-top: 84px;
-}
-
-img { max-width: 100%; }
-
-h1, h2, h3, .logo-text, .login-brand, .stat-value,
-.pub-hero-title, .pub-footer-name {
-  font-family: 'Lexend', 'Inter', system-ui, sans-serif;
-}
-
-@keyframes borg-spin { to { transform: rotate(360deg); } }
-
-/* ── ETAPA 2: Layout Base ────────────────────────────────── */
-
-/* App container */
-#app-container {
-  display: flex;
-  height: 100vh;
-  overflow: hidden;
-}
-#app-container.app-hidden {
-  display: none !important;
-}
-
-/* Sidebar */
-.sidebar {
-  position: fixed;
-  top: 0; left: 0;
-  width: var(--sidebar-w);
-  height: 100vh;
-  background: linear-gradient(190deg, var(--color-sidebar-bg) 0%, var(--color-sidebar-bg-2) 100%);
-  display: flex;
-  flex-direction: column;
-  z-index: 100;
-  transition: transform .25s ease;
-  box-shadow: 1px 0 0 rgba(255,255,255,.04) inset;
-  flex-shrink: 0;
-}
-
-.main-wrapper {
-  margin-left: var(--sidebar-w);
-  flex: 1;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* Logo */
-.sidebar-logo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 22px 22px 18px;
-  border-bottom: 1px solid rgba(255,255,255,.07);
-}
-.logo-image {
-  width: 38px; height: 38px;
-  border-radius: 10px;
-  object-fit: cover;
-  flex-shrink: 0;
-  background: #fff;
-  box-shadow: 0 0 0 1px rgba(79,182,255,.35),0 4px 14px rgba(47,127,240,.35);
-}
-.logo-text {
-  font-size: 16.5px; font-weight: 600;
-  color: #fff; letter-spacing: -.2px;
-}
-
-/* Nav */
-.sidebar-nav {
-  flex: 1;
-  padding: 16px 12px;
-  display: flex; flex-direction: column;
-  gap: 3px; overflow-y: auto;
-}
-.nav-item {
-  display: flex; align-items: center;
-  gap: 11px; padding: 10px 13px;
-  border: none; border-left: 2.5px solid transparent;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--color-sidebar-text);
-  font-size: 13.5px; font-weight: 500;
-  cursor: pointer; transition: background .15s,color .15s,border-color .15s;
-  width: 100%; text-align: left;
-  position: relative;
-}
-.nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
-.nav-item:hover { background: rgba(79,182,255,.09); color: #fff; }
-.nav-item.active {
-  background: linear-gradient(90deg,rgba(79,182,255,.18),rgba(79,182,255,.04));
-  color: #fff; border-left-color: var(--color-sidebar-active);
-}
-.nav-item.active svg { stroke: var(--color-sidebar-active); }
-
-.nav-badge {
-  background: var(--color-danger);
-  color: #fff;
-  font-size: 10px; font-weight: 700;
-  border-radius: 10px;
-  padding: 1px 6px;
-  margin-left: auto;
-}
-
-.admin-only { display: none; }
-.funcionario-plus { display: none; }
-
-/* Footer da sidebar */
-.sidebar-footer {
-  padding: 12px 14px 16px;
-  border-top: 1px solid rgba(255,255,255,.07);
-  display: flex; flex-direction: column; gap: 8px;
-}
-.sidebar-site-btn {
-  display: flex; align-items: center; gap: 8px;
-  width: 100%; border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.06);
-  color: var(--color-sidebar-text);
-  border-radius: var(--radius-sm);
-  padding: 7px 12px; cursor: pointer;
-  font-size: 12px; font-weight: 500;
-  transition: background .15s, color .15s;
-}
-.sidebar-site-btn:hover { background: rgba(255,255,255,.12); color: #fff; }
-.sidebar-site-btn svg { width: 14px; height: 14px; }
-
-.sidebar-user { display: flex; align-items: center; gap: 10px; }
-.sidebar-user-btn {
-  display: flex; align-items: center; width: 100%;
-  border: none; background: transparent; cursor: pointer;
-  padding: 6px; border-radius: var(--radius-sm);
-  text-align: left; transition: background .15s;
-}
-.sidebar-user-btn:hover { background: rgba(255,255,255,.05); }
-.user-avatar {
-  width: 34px; height: 34px;
-  background: linear-gradient(135deg,var(--color-accent-2),var(--color-accent));
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  color: #fff; font-weight: 700; font-size: 13px;
-  flex-shrink: 0; overflow: hidden;
-}
-.user-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.user-name  { display: block; color: #fff; font-size: 13px; font-weight: 600; }
-.user-role  { display: block; color: var(--color-sidebar-text); font-size: 11px; }
-
-/* ── ETAPA 3: Topbar ─────────────────────────────────────── */
-.topbar {
-  height: var(--topbar-h);
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-  display: flex; align-items: center; gap: 12px;
-  padding: 0 28px; flex-shrink: 0;
-  position: sticky; top: 0; z-index: 50;
-}
-.topbar-title {
-  font-family: 'Lexend', 'Inter', sans-serif;
-  font-size: 17px; font-weight: 600;
-  flex: 1; color: var(--color-text); letter-spacing: -.2px;
-}
-.menu-toggle {
-  display: none; background: none; border: none;
-  cursor: pointer; color: var(--color-muted); padding: 4px;
-}
-.menu-toggle svg { width: 22px; height: 22px; }
-.topbar-actions { display: flex; gap: 8px; }
-
-/* ── ETAPA 4: Páginas ────────────────────────────────────── */
-.page {
-  display: none; flex: 1; overflow-y: auto;
-  padding: 30px 32px 44px;
-}
-.page.active { display: block; }
-
-.page-header {
-  display: flex; align-items: center;
-  gap: 18px; flex-wrap: wrap; margin-bottom: 30px;
-}
-.page-header h1 {
-  font-size: 23px; font-weight: 600;
-  color: var(--color-text); letter-spacing: -.3px; flex: 1;
-}
-.page-subtitle {
-  width: 100%; color: var(--color-muted);
-  font-size: 13px; margin-top: -20px; order: 2;
-}
-
-/* ── ETAPA 5: Cards e Estatísticas ───────────────────────── */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
-  gap: 20px; margin-bottom: 32px;
-}
-.stat-card {
-  background: var(--color-surface);
-  border-radius: var(--radius-md);
-  padding: 20px; display: flex;
-  align-items: center; gap: 16px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--color-border);
-  transition: box-shadow .2s,transform .2s,border-color .2s;
-}
-.stat-card:hover { box-shadow: var(--shadow-md); border-color:#D5E2F5; transform:translateY(-2px); }
-.stat-icon {
-  width: 46px; height: 46px; border-radius: var(--radius-sm);
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.stat-icon svg { width: 21px; height: 21px; }
-.stat-value { display: block; font-size: 25px; font-weight: 600; color: var(--color-text); line-height: 1; }
-.stat-label { display: block; font-size: 12px; color: var(--color-muted); margin-top: 5px; }
-
-.dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-.card {
-  background: var(--color-surface);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-}
-.card-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px; border-bottom: 1px solid var(--color-border);
-}
-.card-header h2 { font-size: 14px; font-weight: 600; color: var(--color-text); }
-.badge-week, .badge-today {
-  font-size: 11px; padding: 3px 9px;
-  border-radius: 20px; background: #EAF2FF;
-  color: var(--color-accent-dark); font-weight: 600;
-}
-.table-card-header { padding: 16px 20px; border-bottom: 1px solid var(--color-border); }
-.table-card-header h2 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-
-.funcionaria-list { padding: 12px 20px; }
-.funcionaria-row {
-  display: flex; align-items: center; gap: 12px;
-  padding: 10px 0; border-bottom: 1px solid var(--color-border);
-}
-.funcionaria-row:last-child { border-bottom: none; }
-.func-avatar-sm {
-  width: 32px; height: 32px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
-}
-.func-name-sm { font-size: 13px; font-weight: 500; flex: 1; }
-.func-bar-wrap { flex: 2; height: 6px; background: var(--color-border); border-radius: 4px; overflow: hidden; }
-.func-bar { height: 100%; border-radius: 4px; transition: width .5s ease; }
-.func-horas { font-size: 12px; font-weight: 600; color: var(--color-accent-dark); min-width: 36px; text-align: right; }
-
-.servicos-hoje-list { padding: 12px 20px; }
-.servico-hoje-item {
-  display: flex; align-items: flex-start; gap: 12px;
-  padding: 10px 0; border-bottom: 1px solid var(--color-border);
-}
-.servico-hoje-item:last-child { border-bottom: none; }
-.servico-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-accent-2); flex-shrink: 0; margin-top: 5px; }
-.servico-info-sm .s-cliente { font-size: 13px; font-weight: 600; display: block; }
-.servico-info-sm .s-func { font-size: 12px; color: var(--color-muted); display: block; }
-.servico-horario { margin-left: auto; font-size: 12px; color: var(--color-muted); white-space: nowrap; }
-
-/* ── ETAPA 6: Tabelas ────────────────────────────────────── */
-.search-bar {
-  display: flex; align-items: center; gap: 10px;
-  background: var(--color-surface); border: 1px solid var(--color-border);
-  border-radius: var(--radius-md); padding: 10px 14px;
-  margin-bottom: 16px; transition: border-color .15s,box-shadow .15s;
-}
-.search-bar:has(input:focus) { border-color: var(--color-accent-2); box-shadow: 0 0 0 3px rgba(79,182,255,.14); }
-.search-bar svg { width: 16px; height: 16px; color: var(--color-muted); }
-.search-bar input { border: none; outline: none; width: 100%; font-size: 14px; background: transparent; }
-
-.table-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow-x: auto; -webkit-overflow-scrolling: touch; box-shadow: var(--shadow-sm); }
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table thead { background: #F7FAFD; }
-.data-table th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--color-muted); border-bottom: 1px solid var(--color-border); }
-.data-table td { padding: 13px 16px; font-size: 13.5px; border-bottom: 1px solid var(--color-border); vertical-align: middle; }
-.data-table tbody tr:last-child td { border-bottom: none; }
-.data-table tbody tr.clickable-row:hover td { background: #F7FAFD; cursor: pointer; }
-.obs-text { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-muted); font-size: 12px; }
-
-/* ── ETAPA 7: Agenda ─────────────────────────────────────── */
-.week-nav { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-.semana-label { font-size: 13px; font-weight: 600; color: var(--color-muted); white-space: nowrap; }
-.agenda-scroll { overflow-x: auto; padding-bottom: 12px; }
-.agenda-container {
-  min-width: 860px;
-  display: grid;
-  grid-template-columns: 160px repeat(7,1fr);
-  border-radius: var(--radius-md); overflow: hidden;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface); box-shadow: var(--shadow-sm);
-}
-.agenda-header-cell {
-  background: #F7FAFD; border-bottom: 2px solid var(--color-border);
-  padding: 12px 8px; text-align: center;
-  font-size: 11px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .5px; color: var(--color-muted);
-}
-.agenda-header-cell.hoje { background: linear-gradient(135deg,#EAF2FF,#DCEBFF); color: var(--color-accent-dark); }
-.agenda-func-name {
-  padding: 14px 12px; background: #FAFBFD;
-  border-right: 2px solid var(--color-border);
-  border-bottom: 1px solid var(--color-border);
-  display: flex; align-items: center; gap: 8px; min-height: 90px;
-}
-.agenda-func-name span { font-size: 12px; font-weight: 600; }
-.agenda-cell {
-  border-right: 1px solid var(--color-border);
-  border-bottom: 1px solid var(--color-border);
-  padding: 6px; min-height: 90px;
-  position: relative; transition: background .15s;
-}
-.agenda-cell:last-child { border-right: none; }
-.agenda-cell:hover { background: #F7FAFD; }
-.agenda-cell.hoje-col { background: #FAFDFF; }
-.servico-card {
-  background: linear-gradient(135deg,#EAF2FF,#DCEBFF);
-  border: 1px solid #C7DEFB; border-left: 3px solid var(--color-accent);
-  border-radius: var(--radius-sm); padding: 6px 8px;
-  margin-bottom: 4px; cursor: pointer;
-  transition: box-shadow .15s,transform .15s; position: relative;
-}
-.servico-card:hover { box-shadow: 0 4px 12px rgba(47,127,240,.22); transform: translateY(-1px); }
-.servico-card.sem-permissao { cursor: default; opacity: .85; }
-.servico-card.sem-permissao:hover { box-shadow: none; transform: none; }
-.servico-card .sc-cliente { font-size: 11.5px; font-weight: 700; color: var(--color-accent-dark); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.servico-card .sc-horario { font-size: 10.5px; color: var(--color-accent); display: flex; align-items: center; gap: 3px; margin-top: 2px; }
-.servico-card .sc-horario svg { width: 10px; height: 10px; }
-.servico-card .sc-horas { position: absolute; top: 6px; right: 6px; font-size: 10px; font-weight: 700; background: var(--color-accent); color: #fff; border-radius: 4px; padding: 1px 5px; }
-.servico-card .sc-del { display: none; position: absolute; bottom: 4px; right: 4px; background: var(--color-danger); color: #fff; border: none; border-radius: 4px; width: 20px; height: 20px; cursor: pointer; align-items: center; justify-content: center; }
-.servico-card:hover .sc-del { display: flex; }
-.servico-card .sc-del svg { width: 11px; height: 11px; }
-.cell-add-btn { display: none; width: 100%; border: 1.5px dashed var(--color-border); background: transparent; border-radius: var(--radius-sm); padding: 6px; cursor: pointer; color: var(--color-muted); font-size: 11px; align-items: center; justify-content: center; gap: 4px; transition: border-color .15s,color .15s; margin-top: 2px; }
-.cell-add-btn svg { width: 12px; height: 12px; }
-.agenda-cell:hover .cell-add-btn { display: flex; }
-.cell-add-btn:hover { border-color: var(--color-accent-2); color: var(--color-accent); }
-
-/* Seleção múltipla de dias */
-.dias-selecao { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
-.dia-btn {
-  padding: 8px 14px; border-radius: var(--radius-sm);
-  border: 1.5px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text); font-size: 13px; font-weight: 600;
-  cursor: pointer; transition: all .15s;
-}
-.dia-btn:hover { border-color: var(--color-accent-2); color: var(--color-accent); }
-.dia-btn.active {
-  background: linear-gradient(135deg,var(--color-accent-2),var(--color-accent));
-  border-color: transparent; color: #fff;
-  box-shadow: 0 2px 8px rgba(47,127,240,.3);
-}
-
-/* ── ETAPA 8: Funcionárias Grid ──────────────────────────── */
-.funcionarias-grid-wrapper { overflow: auto; margin: 0 auto; }
-.funcionarias-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap: 16px; }
-.func-card {
-  background: var(--color-surface); border: 1px solid var(--color-border);
-  border-radius: var(--radius-md); padding: 24px 20px; text-align: center;
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow .2s,transform .2s,border-color .2s; cursor: pointer;
-}
-.func-card:hover { box-shadow: var(--shadow-md); border-color: #D5E2F5; transform: translateY(-2px); }
-.func-card-avatar { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: #fff; margin: 0 auto 12px; }
-.func-card-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-.func-card-role { font-size: 12.5px; color: var(--color-accent-dark); font-weight: 600; margin-bottom: 6px; }
-.func-card-contact { font-size: 12.5px; color: var(--color-muted); margin-bottom: 14px; }
-.func-card-stat { background: #EFF6FF; border-radius: var(--radius-sm); padding: 8px; font-size: 12px; color: var(--color-accent-dark); font-weight: 600; }
-
-/* ── ETAPA 9: Relatórios ─────────────────────────────────── */
-.relatorios-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
-.relatorios-grid .full-width { grid-column: 1 / -1; }
-.relatorio-row { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--color-border); }
-.relatorio-row:last-child { border-bottom: none; }
-.rel-name { flex: 1; font-size: 13px; font-weight: 500; }
-.rel-value { font-size: 13px; font-weight: 700; color: var(--color-accent-dark); }
-.chart-bars { padding: 20px 20px 8px; display: flex; align-items: flex-end; gap: 12px; height: 180px; }
-.chart-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; }
-.chart-bar { width: 100%; background: linear-gradient(180deg,var(--color-accent-2),var(--color-accent)); border-radius: 4px 4px 0 0; min-height: 4px; transition: height .4s ease; }
-.chart-bar-label { font-size: 10px; color: var(--color-muted); font-weight: 600; }
-.chart-bar-val { font-size: 11px; font-weight: 700; color: var(--color-accent-dark); }
-
-/* ── ETAPA 10: Modais & Formulários ──────────────────────── */
-.modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(8,18,32,.6); backdrop-filter: blur(4px); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
-.modal-backdrop.open { display: flex; }
-.modal { background: var(--color-surface); border-radius: var(--radius-lg); width: 100%; max-width: 540px; box-shadow: var(--shadow-lg); animation: modalIn .2s ease; max-height: 90vh; display: flex; flex-direction: column; }
-.modal-sm { max-width: 380px; }
-@keyframes modalIn { from { opacity: 0; transform: translateY(-12px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
-.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px 16px; border-bottom: 1px solid var(--color-border); flex-shrink: 0; }
-.modal-header h3 { font-size: 16.5px; font-weight: 600; }
-.modal-close { background: none; border: none; cursor: pointer; color: var(--color-muted); padding: 4px; border-radius: var(--radius-sm); transition: background .15s,color .15s; }
-.modal-close:hover { background: var(--color-bg); color: var(--color-text); }
-.modal-close svg { width: 18px; height: 18px; }
-.modal-body { padding: 20px 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
-.modal-footer { padding: 16px 24px; border-top: 1px solid var(--color-border); display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0; }
-
-.form-group { display: flex; flex-direction: column; gap: 5px; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.form-group label { font-size: 12px; font-weight: 600; color: var(--color-muted); text-transform: uppercase; letter-spacing: .4px; }
-.form-group input, .form-group select, .form-group textarea {
-  border: 1.5px solid var(--color-border); border-radius: var(--radius-sm);
-  padding: 9px 12px; font-size: 13.5px; font-family: inherit;
-  color: var(--color-text); background: var(--color-surface);
-  transition: border-color .15s,box-shadow .15s; outline: none;
-}
-.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-  border-color: var(--color-accent-2); box-shadow: 0 0 0 3px rgba(79,182,255,.15);
-}
-.form-group textarea { resize: vertical; }
-.field-note { display: block; margin-top: 6px; font-size: 12px; color: var(--color-muted); }
-.checkbox-inline { display: inline-flex; align-items: center; gap: 10px; font-size: 13px; }
-.checkbox-inline input { width: 16px; height: 16px; accent-color: var(--color-accent); }
-.form-help { font-size: 11.5px; color: var(--color-muted); margin-top: 4px; }
-
-.horas-calculadas { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #EFFBF3; border: 1px solid #BFEBCC; border-radius: var(--radius-sm); color: #0E6B36; font-size: 13px; font-weight: 600; }
-.horas-calculadas svg { width: 15px; height: 15px; }
-
-.confirm-icon { text-align: center; padding: 10px 0; color: var(--color-warning); }
-.confirm-icon svg { width: 44px; height: 44px; }
-
-.profile-photo-upload { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
-.profile-photo-preview { width: 88px; height: 88px; border-radius: 50%; background: linear-gradient(135deg,var(--color-accent-2),var(--color-accent)); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; overflow: hidden; }
-.profile-photo-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.btn-file { position: relative; overflow: hidden; }
-.btn-file input[type="file"] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
-
-/* ── ETAPA 11: Botões ────────────────────────────────────── */
-.btn-primary {
-  display: inline-flex; align-items: center; justify-content: center;
-  gap: 6px; padding: 10px 18px;
-  background: linear-gradient(135deg,var(--color-accent-2),var(--color-accent));
-  color: #fff; border: none; border-radius: var(--radius-sm);
-  font-size: 13px; font-weight: 600; cursor: pointer;
-  transition: box-shadow .15s,transform .15s; white-space: nowrap;
-}
-.btn-primary:hover { box-shadow: var(--shadow-glow); transform: translateY(-1px); }
-.btn-primary:active { transform: translateY(0); }
-.btn-primary:disabled { opacity: .6; cursor: not-allowed; box-shadow: none; transform: none; }
-.btn-secondary {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 10px 18px; background: var(--color-surface);
-  color: var(--color-text); border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
-  cursor: pointer; transition: background .15s,border-color .15s;
-}
-.btn-secondary:hover { background: var(--color-bg); border-color: #CBD8EA; }
-.btn-danger { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; background: var(--color-danger); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity .15s; }
-.btn-danger:hover { opacity: .88; }
-.btn-icon { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: var(--color-surface); border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; color: var(--color-muted); transition: background .15s,color .15s; }
-.btn-icon:hover { background: var(--color-bg); color: var(--color-text); }
-.btn-icon svg { width: 16px; height: 16px; }
-.btn-sm { padding: 6px 12px; font-size: 12px; }
-
-.produto-imagem-upload { display: flex; align-items: center; gap: 16px; }
-.produto-imagem-preview {
-  width: 84px; height: 84px; flex-shrink: 0; border-radius: var(--radius-sm);
-  background: var(--color-bg); border: 1.5px dashed var(--color-border);
-  display: flex; align-items: center; justify-content: center; overflow: hidden;
-}
-.produto-imagem-preview img { width: 100%; height: 100%; object-fit: contain; padding: 6px; box-sizing: border-box; }
-.produto-imagem-preview-icon,
-#produto-imagem-preview-icon { color: var(--color-muted); opacity: .4; width: 26px; height: 26px; }
-.produto-imagem-upload-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
-.produto-imagem-btn { cursor: pointer; }
-.btn-link-danger {
-  background: none; border: none; padding: 0; cursor: pointer;
-  color: var(--color-danger); font-size: 12px; font-weight: 600;
-}
-.btn-link-danger:hover { text-decoration: underline; }
-.btn-block { width: 100%; }
-
-button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, .nav-item:focus-visible {
-  outline: 2px solid var(--color-accent-2); outline-offset: 2px;
-}
-
-/* ── ETAPA 12: Toast & Empty States ──────────────────────── */
-.toast {
-  position: fixed; bottom: 28px; left: 50%;
-  transform: translateX(-50%) translateY(20px);
-  background: #122036; color: #fff;
-  padding: 12px 22px; border-radius: var(--radius-md);
-  font-size: 13px; font-weight: 500;
-  opacity: 0; transition: opacity .2s,transform .2s;
-  pointer-events: none; z-index: 999;
-  white-space: nowrap; box-shadow: var(--shadow-lg);
-}
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-.toast.success { background: #0E6B36; }
-.toast.error { background: #8A1F23; }
-
-.empty-state { padding: 60px 20px; text-align: center; color: var(--color-muted); }
-.empty-state svg { width: 46px; height: 46px; opacity: .35; margin-bottom: 14px; color: var(--color-accent); display: block; margin-inline: auto; }
-.empty-state h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; color: var(--color-text); }
-.empty-state p { font-size: 13px; margin-bottom: 18px; }
-.empty-state-small { padding: 24px; text-align: center; color: var(--color-muted); }
-.empty-state-small svg { width: 28px; height: 28px; opacity: .3; margin-bottom: 6px; display: block; margin-inline: auto; }
-.empty-state-small p { font-size: 12px; }
-
-.overlay { display: none; position: fixed; inset: 0; background: rgba(8,18,32,.45); z-index: 99; }
-
-/* ── ETAPA 13: Auth (Login) ──────────────────────────────── */
-.login-overlay { position: fixed; inset: 0; background: radial-gradient(circle at 18% 14%,rgba(79,182,255,.18),transparent 42%),rgba(8,18,32,.78); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 2000; }
-.login-overlay.hidden { display: none; }
-.login-card { position: relative; width: min(460px,calc(100% - 40px)); background: #fff; border-radius: 22px; box-shadow: var(--shadow-lg); overflow: hidden; }
-.login-close-btn { position: absolute; top: 12px; right: 12px; z-index: 1; }
-.login-brand { padding: 32px 32px 0; font-size: 22px; font-weight: 600; color: var(--color-text); text-align: center; }
-.login-brand::before { content: ""; display: block; width: 46px; height: 4px; margin: 0 auto 16px; border-radius: 4px; background: linear-gradient(90deg,var(--color-accent-2),var(--color-accent)); }
-.login-tabs { display: flex; gap: 6px; padding: 22px 28px 0; }
-.login-tab { flex: 1; padding: 10px 0; border: 1.5px solid var(--color-border); background: var(--color-surface); color: var(--color-text); font-weight: 600; font-size: 13px; border-radius: var(--radius-sm); cursor: pointer; transition: all .2s; }
-.login-tab.active { background: linear-gradient(135deg,var(--color-accent-2),var(--color-accent)); color: #fff; border-color: transparent; }
-.login-forms { padding: 22px 28px 30px; }
-.auth-form { display: grid; gap: 14px; }
-.auth-form.hidden { display: none; }
-.auth-note { margin: 0; font-size: 13px; color: var(--color-muted); text-align: center; }
-.auth-note .link-button, .link-button { background: none; border: none; color: var(--color-accent-dark); cursor: pointer; text-decoration: underline; font: inherit; padding: 0; }
-
-/* ── ETAPA 14: Site Público ──────────────────────────────── */
-#public-site {
-  min-height: 100vh;
-  background: #fff;
-}
-
-/* Navbar pública */
-.pub-nav {
-  position: sticky; top: 0;
-  background: rgba(10,27,48,.96);
-  backdrop-filter: blur(12px);
-  z-index: 900;
-  border-bottom: 1px solid rgba(79,182,255,.15);
-}
-.pub-nav-inner {
-  max-width: 1160px; margin: 0 auto;
-  padding: 0 28px;
-  display: flex; align-items: center; gap: 20px;
-  height: 64px;
-}
-.pub-nav-logo {
-  display: flex; align-items: center; gap: 10px;
-  text-decoration: none; flex-shrink: 0;
-}
-.pub-logo-img {
-  width: 36px; height: 36px; border-radius: 8px;
-  object-fit: contain; background: #fff;
-  padding: 3px;
-  box-shadow: 0 0 0 1px rgba(79,182,255,.3);
-}
-.pub-logo-text {
-  font-size: 16px; font-weight: 700;
-  color: #fff; white-space: nowrap;
-}
-.pub-nav-links {
-  display: flex; align-items: center; gap: 6px; flex: 1;
-  justify-content: center;
-}
-.pub-nav-links a {
-  color: rgba(255,255,255,.7); text-decoration: none;
-  padding: 7px 14px; border-radius: var(--radius-sm);
-  font-size: 13.5px; font-weight: 500;
-  transition: color .15s, background .15s;
-}
-.pub-nav-links a:hover { color: #fff; background: rgba(79,182,255,.12); }
-.pub-nav-actions { display: flex; gap: 8px; flex-shrink: 0; }
-.pub-hidden { display: none !important; }
-.pub-hamburger {
-  display: none; background: none; border: none;
-  color: #fff; cursor: pointer; padding: 4px;
-}
-.pub-hamburger svg { width: 22px; height: 22px; }
-
-.pub-mobile-menu {
-  display: none; flex-direction: column; gap: 4px;
-  padding: 12px 20px 20px;
-  background: rgba(10,27,48,.98);
-  border-top: 1px solid rgba(255,255,255,.08);
-}
-.pub-mobile-menu a {
-  color: rgba(255,255,255,.8); text-decoration: none;
-  padding: 11px 14px; border-radius: var(--radius-sm);
-  font-size: 14px; font-weight: 500;
-}
-.pub-mobile-menu a:hover { background: rgba(79,182,255,.1); color: #fff; }
-.pub-mobile-menu button { margin-top: 8px; }
-.pub-mobile-menu.open { display: flex; }
-
-/* Hero */
-.pub-hero {
-  min-height: 88vh;
-  background: linear-gradient(145deg, #0A1B30 0%, #0D2241 45%, #122D54 100%);
-  display: flex; align-items: center; justify-content: center;
-  padding: 80px 28px 60px;
-  position: relative; overflow: hidden;
-}
-.pub-hero-shapes {
-  position: absolute; inset: 0;
-  background:
-    radial-gradient(ellipse 70% 60% at 75% 50%, rgba(47,127,240,.2) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 40% at 20% 80%, rgba(79,182,255,.1) 0%, transparent 50%);
-  pointer-events: none;
-}
-.pub-hero-content {
-  position: relative; z-index: 2;
-  max-width: 600px; flex: 1;
-}
-.pub-hero-badge {
-  display: inline-flex; align-items: center; gap: 8px;
-  background: rgba(79,182,255,.15);
-  border: 1px solid rgba(79,182,255,.35);
-  color: var(--color-accent-2); padding: 6px 14px;
-  border-radius: 20px; font-size: 12px; font-weight: 600;
-  margin-bottom: 24px; letter-spacing: .4px; text-transform: uppercase;
-}
-.badge-dot { width: 6px; height: 6px; background: var(--color-accent-2); border-radius: 50%; animation: pulse-dot 2s infinite; }
-@keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
-
-.pub-hero-title {
-  font-size: clamp(36px,5vw,62px);
-  font-weight: 800; color: #fff;
-  line-height: 1.12; letter-spacing: -.03em;
-  margin-bottom: 20px;
-}
-.pub-hero-tagline {
-  font-size: 14px; color: rgba(255,255,255,.5);
-  letter-spacing: 1.5px; text-transform: uppercase;
-  margin-bottom: 36px; font-weight: 500;
-}
-.pub-hero-sub {
-  font-size: 17px; color: rgba(255,255,255,.75);
-  line-height: 1.65; margin-bottom: 16px;
-  max-width: 480px;
-}
-.pub-hero-actions {
-  display: flex; gap: 12px; flex-wrap: wrap;
-}
-.btn-hero-primary {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 14px 28px;
-  background: linear-gradient(135deg,#4FB6FF,#2F7FF0);
-  color: #fff; text-decoration: none;
-  border-radius: var(--radius-md);
-  font-size: 15px; font-weight: 700;
-  box-shadow: 0 8px 32px rgba(47,127,240,.4);
-  transition: box-shadow .2s, transform .2s;
-}
-.btn-hero-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(47,127,240,.5); }
-.btn-hero-outline {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 14px 28px;
-  background: rgba(255,255,255,.08);
-  border: 1.5px solid rgba(255,255,255,.3);
-  color: rgba(255,255,255,.9); text-decoration: none;
-  border-radius: var(--radius-md); font-size: 15px; font-weight: 600;
-  transition: background .2s, border-color .2s;
-}
-.btn-hero-outline:hover { background: rgba(255,255,255,.15); border-color: rgba(255,255,255,.5); }
-.pub-hero-visual {
-  position: relative; z-index: 2;
-  display: flex; align-items: center; justify-content: center;
-  padding: 20px 0 20px 60px; flex-shrink: 0;
-}
-.pub-hero-logo {
-  width: 220px; height: 220px; border-radius: 28px;
-  object-fit: contain; background: rgba(255,255,255,.12);
-  box-shadow: 0 24px 80px rgba(0,0,0,.35),
-              0 0 0 1px rgba(79,182,255,.2),
-              inset 0 1px 0 rgba(255,255,255,.1);
-  padding: 28px;
-  display: block;
-}
-
-/* Stats bar */
-.pub-stats-bar {
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-  display: flex; justify-content: center; flex-wrap: wrap;
-  gap: 0;
-}
-.pub-stat {
-  display: flex; flex-direction: column; align-items: center;
-  padding: 24px 48px; flex: 1; min-width: 160px;
-  text-align: center;
-}
-.pub-stat + .pub-stat { border-left: 1px solid var(--color-border); }
-.pub-stat-num {
-  font-family: 'Lexend', sans-serif;
-  font-size: 28px; font-weight: 800;
-  color: var(--color-accent-dark); line-height: 1;
-  margin-bottom: 6px;
-}
-.pub-stat-label { font-size: 12px; color: var(--color-muted); font-weight: 500; }
-
-/* Sections */
-.pub-section { padding: 80px 28px; }
-.pub-section-dark {
-  background: linear-gradient(145deg,#0A1B30,#0F2745);
-}
-.pub-contact-section { background: #F3F6FB; }
-
-.pub-container { max-width: 1160px; margin: 0 auto; }
-
-.pub-section-header {
-  text-align: center; margin-bottom: 56px;
-}
-.pub-section-header h2 {
-  font-size: clamp(26px,3vw,38px);
-  font-weight: 800; color: var(--color-text);
-  margin: 10px 0 14px; letter-spacing: -.02em;
-}
-.pub-section-header p { font-size: 16px; color: var(--color-muted); max-width: 500px; margin: 0 auto; }
-.pub-section-header.light h2 { color: #fff; }
-.pub-section-header.light p { color: rgba(255,255,255,.65); }
-
-.pub-eyebrow {
-  display: inline-block; font-size: 11px; font-weight: 700;
-  letter-spacing: 1.5px; text-transform: uppercase;
-  color: var(--color-accent); background: rgba(47,127,240,.1);
-  padding: 5px 12px; border-radius: 20px; margin-bottom: 10px;
-}
-.pub-eyebrow.light { color: var(--color-accent-2); background: rgba(79,182,255,.15); }
-
-/* Services */
-.pub-services-grid {
-  display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr));
-  gap: 24px;
-}
-.pub-service-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 32px 28px;
-  text-align: center;
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow .2s, transform .2s, border-color .2s;
-}
-.pub-service-card:hover { box-shadow: var(--shadow-md); transform: translateY(-4px); border-color: #D5E2F5; }
-.pub-service-icon { font-size: 36px; margin-bottom: 16px; }
-.pub-service-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 10px; color: var(--color-text); }
-.pub-service-card p { font-size: 14px; color: var(--color-muted); line-height: 1.6; }
-
-/* How it works */
-.pub-steps {
-  display: flex; align-items: flex-start; justify-content: center;
-  gap: 0; flex-wrap: wrap;
-}
-.pub-step {
-  flex: 1; min-width: 220px; max-width: 300px;
-  text-align: center; padding: 0 20px;
-}
-.pub-step-num {
-  width: 56px; height: 56px; border-radius: 50%;
-  background: linear-gradient(135deg,rgba(79,182,255,.25),rgba(47,127,240,.4));
-  border: 2px solid rgba(79,182,255,.5);
-  color: var(--color-accent-2); font-size: 18px; font-weight: 800;
-  display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 20px;
-}
-.pub-step-content h3 { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 10px; }
-.pub-step-content p { font-size: 14px; color: rgba(255,255,255,.65); line-height: 1.65; }
-.pub-step-connector {
-  display: flex; align-items: center; justify-content: center;
-  padding: 28px 4px 0; color: rgba(79,182,255,.5); flex-shrink: 0;
-}
-.pub-step-connector svg { width: 28px; height: 28px; }
-
-/* Contact */
-.pub-contact-grid {
-  display: grid; grid-template-columns: 1fr 1.2fr; gap: 60px; align-items: start;
-}
-.pub-contact-info { padding-top: 8px; }
-.pub-contact-info h2 { font-size: clamp(24px,2.5vw,34px); font-weight: 800; color: var(--color-text); margin: 12px 0 16px; letter-spacing: -.02em; }
-.pub-contact-info p { font-size: 15px; color: var(--color-muted); line-height: 1.7; margin-bottom: 32px; }
-.pub-contact-details { display: flex; flex-direction: column; gap: 16px; }
-.pub-contact-detail-row { display: flex; align-items: center; gap: 12px; }
-.pub-contact-icon-wrap {
-  width: 40px; height: 40px; border-radius: var(--radius-sm);
-  background: rgba(47,127,240,.1);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; color: var(--color-accent);
-}
-.pub-contact-icon-wrap svg { width: 18px; height: 18px; }
-.pub-contact-form-card {
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-  padding: 32px; box-shadow: var(--shadow-md);
-  display: flex; flex-direction: column; gap: 16px;
-}
-.pub-contact-form-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
-
-/* Footer */
-.pub-footer {
-  background: var(--color-sidebar-bg);
-  padding: 40px 28px;
-}
-.pub-footer-inner {
-  max-width: 1160px; margin: 0 auto;
-  display: flex; align-items: center; justify-content: space-between;
-  flex-wrap: wrap; gap: 20px;
-}
-.pub-footer-brand { display: flex; align-items: center; gap: 14px; }
-.pub-footer-logo { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; background: rgba(255,255,255,.1); }
-.pub-footer-name { display: block; color: #fff; font-size: 15px; font-weight: 700; }
-.pub-footer-tag { display: block; color: rgba(255,255,255,.45); font-size: 11px; margin-top: 2px; }
-.pub-footer-copy { color: rgba(255,255,255,.4); font-size: 12px; }
-
-/* ── ETAPA 15: Produtos ──────────────────────────────────── */
-.pub-produtos-grid {
-  display: grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr));
-  gap: 24px;
-}
-.pub-produto-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow .2s, transform .2s, border-color .2s;
-}
-.pub-produto-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); border-color: #D5E2F5; }
-.pub-produto-img {
-  width: 100%; height: 160px; object-fit: cover;
-  background: linear-gradient(135deg,#EAF2FF,#DCEBFF);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 40px;
-}
-.pub-produto-img img { width: 100%; height: 100%; object-fit: contain; padding: 10px; box-sizing: border-box; }
-.pub-produto-body { padding: 16px; }
-.pub-produto-nome { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
-.pub-produto-desc { font-size: 12.5px; color: var(--color-muted); line-height: 1.55; margin-bottom: 12px; }
-.pub-produto-link { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--color-accent); text-decoration: none; }
-.pub-produto-link:hover { text-decoration: underline; }
-.pub-prod-empty { grid-column: 1/-1; text-align: center; padding: 48px 20px; color: var(--color-muted); }
-.pub-prod-empty svg { width: 40px; height: 40px; opacity: .3; margin-bottom: 12px; display: block; margin-inline: auto; }
-
-/* Produtos no App */
-.produtos-grid-app {
-  display: grid; grid-template-columns: repeat(auto-fill,minmax(240px,1fr));
-  gap: 20px;
-}
-.produto-card-app {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  overflow: hidden; box-shadow: var(--shadow-sm);
-  position: relative;
-}
-.produto-card-app-img {
-  width: 100%; height: 150px;
-  background: linear-gradient(135deg,#EAF2FF,#DCEBFF);
-  display: flex; align-items: center; justify-content: center; font-size: 36px;
-}
-.produto-card-app-img img { width: 100%; height: 100%; object-fit: contain; padding: 10px; box-sizing: border-box; }
-.produto-card-app-body { padding: 14px; }
-.produto-card-app-nome { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
-.produto-card-app-desc { font-size: 12.5px; color: var(--color-muted); margin-bottom: 10px; }
-.produto-card-app-link { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--color-accent); text-decoration: none; margin-top: 2px; }
-.produto-card-app-link + .produto-card-app-link { margin-left: 10px; }
-.produto-card-app-link:hover { text-decoration: underline; }
-.produto-card-app-actions {
-  position: absolute; top: 8px; right: 8px;
-  display: flex; gap: 4px; opacity: 0; transition: opacity .15s;
-}
-.produto-card-app:hover .produto-card-app-actions { opacity: 1; }
-.produto-action-btn {
-  width: 28px; height: 28px; border-radius: 6px;
-  border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
-  font-size: 12px; transition: opacity .15s;
-}
-.produto-action-btn svg { width: 13px; height: 13px; }
-.produto-action-edit { background: var(--color-accent); color: #fff; }
-.produto-action-del { background: var(--color-danger); color: #fff; }
-
-/* ── ETAPA 16: Mensagens/Chat ────────────────────────────── */
-/* Mensagens: tabs (Clientes / Chat da Equipa) */
-.mensagens-tabs {
-  display: flex; gap: 4px; margin-bottom: 18px;
-  border-bottom: 1px solid var(--color-border);
-}
-.mensagens-tabs .tab-btn {
-  display: flex; align-items: center; gap: 6px;
-  background: none; border: none; cursor: pointer;
-  padding: 10px 16px; font-size: 14px; font-weight: 600;
-  font-family: inherit; color: var(--color-muted);
-  border-bottom: 2px solid transparent; margin-bottom: -1px;
-  transition: color .15s, border-color .15s;
-}
-.mensagens-tabs .tab-btn i { width: 15px; height: 15px; }
-.mensagens-tabs .tab-btn:hover { color: var(--color-text); }
-.mensagens-tabs .tab-btn.active { color: var(--color-accent); border-bottom-color: var(--color-accent); }
-
-/* Chat privado com a equipa */
-.chat-equipa-wrapper { display: flex; gap: 16px; align-items: flex-start; }
-.chat-equipa-lista {
-  width: 240px; flex-shrink: 0;
-  display: flex; flex-direction: column; gap: 4px;
-  background: var(--color-surface); border: 1px solid var(--color-border);
-  border-radius: var(--radius-md); padding: 10px;
-  max-height: 540px; overflow-y: auto;
-}
-.chat-equipa-item {
-  position: relative;
-  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-  background: none; border: none; text-align: left; cursor: pointer;
-  font-family: inherit; padding: 10px 34px 10px 12px;
-  border-radius: var(--radius-sm); transition: background .15s;
-}
-.chat-equipa-item:hover { background: var(--color-bg); }
-.chat-equipa-item.active { background: rgba(47,127,240,.08); }
-.chat-equipa-nome { font-size: 13px; font-weight: 600; color: var(--color-text); }
-.chat-equipa-cargo { font-size: 11px; color: var(--color-muted); }
-.chat-equipa-item .nav-badge { position: absolute; right: 10px; top: 10px; }
-.chat-equipa-painel {
-  flex: 1; min-width: 0;
-  background: var(--color-surface); border: 1px solid var(--color-border);
-  border-radius: var(--radius-md); padding: 18px;
-}
-.chat-equipa-titulo { font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--color-text); }
-@media (max-width: 720px) {
-  .chat-equipa-wrapper { flex-direction: column; }
-  .chat-equipa-lista { width: 100%; max-height: 200px; }
-}
-
-.mensagens-lista { display: flex; flex-direction: column; gap: 12px; }
-.mensagem-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-left: 4px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 16px 20px;
-  cursor: pointer; transition: box-shadow .15s, border-left-color .15s;
-}
-.mensagem-card:hover { box-shadow: var(--shadow-md); }
-.mensagem-card.nao-lida { border-left-color: var(--color-accent); background: #F8FBFF; }
-.mensagem-card.respondida { border-left-color: var(--color-success); }
-.mensagem-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-.mensagem-nome { font-size: 14px; font-weight: 700; flex: 1; }
-.mensagem-data { font-size: 11px; color: var(--color-muted); }
-.mensagem-badge-novo { font-size: 10px; font-weight: 700; background: var(--color-accent); color: #fff; padding: 2px 7px; border-radius: 10px; }
-.mensagem-badge-resp { font-size: 10px; font-weight: 700; background: var(--color-success); color: #fff; padding: 2px 7px; border-radius: 10px; }
-.mensagem-assunto { font-size: 12px; color: var(--color-accent-dark); font-weight: 600; margin-bottom: 4px; }
-.mensagem-preview { font-size: 13px; color: var(--color-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mensagem-contacto { display: flex; gap: 16px; margin-top: 8px; }
-.mensagem-contacto span { font-size: 11.5px; color: var(--color-muted); }
-
-.mensagem-detalhe { background: #F7FAFD; border-radius: var(--radius-md); padding: 16px; }
-.mensagem-detalhe h4 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-.mensagem-detalhe .md-meta { font-size: 12px; color: var(--color-muted); margin-bottom: 12px; }
-.mensagem-detalhe .md-texto { font-size: 14px; line-height: 1.65; color: var(--color-text); }
-.mensagem-detalhe .md-resp { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--color-border); }
-.mensagem-detalhe .md-resp-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--color-success); margin-bottom: 6px; }
-.mensagem-detalhe .md-resp-texto { font-size: 13px; color: var(--color-muted); }
-
-/* ── ETAPA 17: Edição Inline ─────────────────────────────── */
-.editable-block { position: relative; display: inline-flex; align-items: flex-start; gap: 6px; flex-wrap: wrap; }
-.edit-inline-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; border-radius: 6px;
-  background: rgba(47,127,240,.15); border: 1px solid rgba(47,127,240,.3);
-  color: var(--color-accent); cursor: pointer;
-  transition: background .15s, transform .15s;
-  flex-shrink: 0;
-}
-.edit-inline-btn:hover { background: rgba(47,127,240,.25); transform: scale(1.1); }
-.edit-inline-btn.light { background: rgba(79,182,255,.2); border-color: rgba(79,182,255,.4); color: var(--color-accent-2); }
-.edit-inline-btn svg { width: 13px; height: 13px; }
-
-.inline-edit-form {
-  display: flex; flex-direction: column; gap: 8px;
-  width: 100%; margin-top: 8px;
-}
-.inline-edit-form textarea, .inline-edit-form input {
-  width: 100%; padding: 8px 12px;
-  border: 1.5px solid var(--color-accent-2);
-  border-radius: var(--radius-sm);
-  font: inherit; color: var(--color-text);
-  background: rgba(255,255,255,.9);
-  outline: none; resize: vertical;
-}
-.inline-edit-actions { display: flex; gap: 6px; }
-.inline-edit-save {
-  padding: 6px 14px; background: var(--color-accent); color: #fff;
-  border: none; border-radius: var(--radius-sm); cursor: pointer;
-  font-size: 12px; font-weight: 600;
-}
-.inline-edit-cancel {
-  padding: 6px 14px; background: rgba(255,255,255,.2); color: rgba(255,255,255,.8);
-  border: 1px solid rgba(255,255,255,.2); border-radius: var(--radius-sm);
-  cursor: pointer; font-size: 12px; font-weight: 600;
-}
-.inline-edit-cancel.dark { background: var(--color-bg); color: var(--color-muted); border-color: var(--color-border); }
-
-/* ── ETAPA 19: Área do Cliente ────────────────────────────── */
-
-.reg-tipo-toggle {
-  display: flex; gap: 8px; background: var(--color-bg);
-  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
-  padding: 4px;
-}
-.reg-tipo-option {
-  flex: 1; text-align: center; padding: 8px 10px;
-  border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;
-  color: var(--color-muted); transition: .15s;
-}
-.reg-tipo-option input { display: none; }
-.reg-tipo-option:has(input:checked) {
-  background: var(--color-accent); color: #fff;
-}
-
-#client-container {
-  min-height: 100vh; display: flex; flex-direction: column; background: var(--color-bg);
-}
-#client-container.app-hidden { display: none; }
-
-.client-header {
-  height: var(--topbar-h); background: var(--color-sidebar-bg); color: #fff;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 24px; gap: 16px; flex-wrap: wrap;
-}
-.client-header-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
-.client-header-brand img { height: 28px; width: 28px; border-radius: 6px; }
-.client-header-user { color: var(--color-sidebar-text); font-size: 14px; }
-.client-header-user strong { color: #fff; }
-.client-header-actions { display: flex; gap: 8px; }
-
-.client-nav {
-  display: flex; gap: 4px; background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border); padding: 0 24px;
-}
-.client-nav-item {
-  display: flex; align-items: center; gap: 6px; padding: 14px 16px;
-  border: none; background: none; cursor: pointer; font-weight: 600; font-size: 14px;
-  color: var(--color-muted); border-bottom: 2px solid transparent;
-}
-.client-nav-item svg { width: 16px; height: 16px; }
-.client-nav-item.active { color: var(--color-accent); border-bottom-color: var(--color-accent); }
-
-.client-main { flex: 1; padding: 24px; max-width: 720px; width: 100%; margin: 0 auto; }
-.client-page { display: none; }
-.client-page.active { display: block; }
-.client-page-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 16px; gap: 12px; flex-wrap: wrap;
-}
-.client-page-header h2 { font-size: 19px; }
-
-.client-chat-msgs { min-height: 320px; max-height: 55vh; }
-
-.cliente-servicos-lista { display: flex; flex-direction: column; gap: 10px; }
-.cliente-servico-card {
-  display: flex; align-items: center; gap: 16px;
-  background: var(--color-surface); border: 1px solid var(--color-border);
-  border-radius: var(--radius-md); padding: 14px 18px; box-shadow: var(--shadow-sm);
-}
-.cliente-servico-dia {
-  width: 44px; height: 44px; border-radius: var(--radius-sm);
-  background: var(--color-accent); color: #fff; font-weight: 700; font-size: 13px;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.cliente-servico-hora { font-weight: 600; }
-.cliente-servico-func { color: var(--color-muted); font-size: 13px; }
-
-.badge-conta {
-  display: inline-block; font-size: 10px; font-weight: 700;
-  color: var(--color-accent-dark); background: rgba(47,127,240,.1);
-  border: 1px solid var(--color-accent); border-radius: 10px;
-  padding: 1px 7px; margin-left: 6px; vertical-align: middle;
-}
-
-.ligar-conta-hint { font-size: 12px; color: var(--color-muted); margin: 2px 0 8px; }
-.ligar-conta-resultados {
-  display: flex; flex-direction: column; gap: 2px; margin-top: 6px;
-  max-height: 180px; overflow-y: auto;
-}
-.ligar-conta-item {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-  width: 100%; text-align: left; cursor: pointer; font-family: inherit;
-  background: var(--color-bg); border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm); padding: 8px 12px; transition: background .15s;
-}
-.ligar-conta-item:hover { background: rgba(47,127,240,.08); border-color: var(--color-accent); }
-.ligar-conta-item strong { font-size: 13px; color: var(--color-text); }
-.ligar-conta-item span { font-size: 11px; color: var(--color-muted); }
-
-@media (max-width: 640px) {
-  .client-header { padding: 0 14px; }
-  .client-header-user { display: none; }
-  .client-main { padding: 16px; }
-  .client-nav { padding: 0 8px; overflow-x: auto; }
-}
-
-/* ── ETAPA 18: Responsivo ────────────────────────────────── */
-@media (max-width: 900px) {
-  .pub-hero { flex-direction: column; text-align: center; min-height: auto; padding: 100px 24px 60px; }
-  .pub-hero-content { max-width: 100%; }
-  .pub-hero-actions { justify-content: center; }
-  .pub-hero-visual { padding: 40px 0 0; }
-  .pub-hero-logo { width: 160px; height: 160px; }
-  .pub-contact-grid { grid-template-columns: 1fr; gap: 32px; }
-  .pub-steps { flex-direction: column; align-items: center; }
-  .pub-step-connector { transform: rotate(90deg); padding: 0 4px; }
-  .relatorios-grid { grid-template-columns: 1fr; }
-  .dashboard-grid { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 768px) {
-  .sidebar { transform: translateX(-100%); }
-  .sidebar.open { transform: translateX(0); box-shadow: var(--shadow-lg); }
-  .main-wrapper { margin-left: 0; }
-  .menu-toggle { display: flex; }
-  .overlay.show { display: block; }
-  .page { padding: 18px 16px 32px; }
-  .topbar { padding: 0 16px; }
-  .stats-grid { grid-template-columns: 1fr 1fr; }
-  .agenda-container { min-width: 700px; }
-  .page-header { gap: 10px; }
-  .page-header h1 { font-size: 19px; }
-  .pub-hamburger { display: flex; }
-  .pub-nav-links { display: none; }
-  .pub-nav-inner { padding: 0 16px; gap: 10px; }
-  .pub-logo-text { font-size: 14px; }
-  .pub-nav-actions .btn-primary span { display: none; }
-  .pub-stat { padding: 20px 20px; }
-  .pub-section-fullwidth .pub-services-grid { grid-template-columns: 1fr 1fr; }
-  .pub-section-fullwidth > .pub-container { padding: 0 20px; }
-  .pub-av-grid { grid-template-columns: 1fr; }
-  .pub-av-form-card { padding: 24px 20px; }
-  .avaliacoes-lista-app { grid-template-columns: 1fr; }
-  .data-table { min-width: 560px; }
-  .modal-header, .modal-body, .modal-footer { padding-left: 16px; padding-right: 16px; }
-  .modal-backdrop { padding: 12px; }
-  .topbar-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pub-av-form-card, .avaliacao-card { max-width: 100%; }
-}
-
-@media (max-width: 480px) {
-  .stats-grid { grid-template-columns: 1fr 1fr; }
-  .topbar-actions .btn-secondary span { display: none; }
-  .form-row { grid-template-columns: 1fr; }
-  .pub-hero-title { font-size: 32px; }
-  .pub-stat { min-width: 50%; }
-  .pub-stat + .pub-stat { border-left: none; border-top: 1px solid var(--color-border); }
-  .dias-selecao { gap: 6px; }
-  .dia-btn { padding: 7px 10px; font-size: 12px; }
-  .pub-section-fullwidth .pub-services-grid { grid-template-columns: 1fr; }
-}
-/* ── ETAPA 19: Full-Width Sections ───────────────────────── */
-.pub-section-fullwidth {
-  padding: 80px 0;
-  width: 100%;
-}
-.pub-section-fullwidth > .pub-container {
-  max-width: 1400px;
-  padding: 0 48px;
-}
-.pub-section-fullwidth .pub-services-grid {
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0;
-}
-.pub-section-fullwidth .pub-service-card {
-  border-radius: 0;
-  border: none;
-  border-right: 1px solid var(--color-border);
-  padding: 48px 36px;
-  transition: background .2s, transform .2s;
-}
-.pub-section-fullwidth .pub-service-card:last-child { border-right: none; }
-.pub-section-fullwidth .pub-service-card:hover {
-  background: #F0F6FF;
-  transform: translateY(-6px);
-  box-shadow: 0 12px 32px rgba(47,127,240,.12);
-  z-index: 1; position: relative;
-}
-
-/* ── ETAPA 20: Scroll Animations ─────────────────────────── */
-.pub-service-card, .pub-step, .pub-produto-card, .pub-av-card, .pub-stat {
-  opacity: 0;
-  transform: translateY(28px);
-  transition: opacity .55s ease, transform .55s ease;
-}
-.pub-service-card.fade-in-up,
-.pub-step.fade-in-up,
-.pub-produto-card.fade-in-up,
-.pub-av-card.fade-in-up,
-.pub-stat.fade-in-up {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Typewriter heading (elements keep layout before revealed) */
-.pub-section-header h2,
-.pub-contact-info h2 {
-  min-height: 1.2em;
-}
-
-/* ── ETAPA 21: Reviews ────────────────────────────────────── */
-
-/* Stars */
-.star, .star-btn {
-  font-size: 22px;
-  color: #d1d5db;
-  cursor: default;
-}
-.star.filled { color: #F59E0B; }
-.star-btn {
-  cursor: pointer;
-  transition: color .15s, transform .15s;
-  display: inline-block;
-}
-.star-btn:hover, .star-btn.filled { color: #F59E0B; }
-.star-btn:hover { transform: scale(1.2); }
-.av-estrelas-interactive {
-  display: flex; gap: 4px; font-size: 28px;
-}
-
-/* Public reviews grid */
-.pub-section-reviews { background: var(--color-bg); }
-.pub-av-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px; margin-bottom: 48px;
-  align-items: start;
-}
-.pub-av-empty { text-align: center; color: var(--color-muted); padding: 32px; }
-.pub-av-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  box-shadow: var(--shadow-sm);
-}
-.pub-av-top {
-  display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
-}
-.pub-av-avatar {
-  width: 40px; height: 40px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-accent-2), var(--color-accent));
-  color: #fff; font-weight: 700; font-size: 16px;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.pub-av-nome { font-size: 14px; font-weight: 600; color: var(--color-text); }
-.pub-av-data { font-size: 11px; color: var(--color-muted); margin-top: 1px; }
-.pub-av-estrelas { margin-left: auto; display: flex; gap: 2px; }
-.pub-av-estrelas .star { font-size: 16px; }
-.pub-av-func-tag {
-  font-size: 11px; color: var(--color-accent-dark);
-  background: rgba(47,127,240,.08);
-  border-radius: 12px; padding: 2px 10px;
-  display: inline-block; margin-bottom: 8px;
-}
-.pub-av-card { text-align: left; }
-.pub-av-texto {
-  font-size: 13px; color: var(--color-muted); line-height: 1.6; margin: 0 0 10px;
-  text-align: left; white-space: pre-line; word-break: break-word;
-}
-
-.pub-av-thread { border-top: 1px solid var(--color-border); margin-top: 12px; padding-top: 10px; }
-.pub-av-thread-toggle {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: none; border: none; padding: 2px 0; margin: 0;
-  font-family: inherit; font-size: 12px; font-weight: 600;
-  color: var(--color-muted); cursor: pointer; transition: color .15s;
-}
-.pub-av-thread-toggle:hover,
-.pub-av-thread-toggle.is-open { color: var(--color-accent); }
-.pub-av-thread-toggle i { width: 14px; height: 14px; }
-.pub-av-thread-body { margin-top: 10px; }
-.pub-av-chat-msgs { max-height: 170px; }
-.pub-chat-nome-input { max-width: 100px; flex: 0 0 100px; }
-.pub-av-vermais-wrap { text-align: center; margin-top: -24px; margin-bottom: 44px; }
-
-/* Review submission form */
-.pub-av-form-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 36px 40px;
-  max-width: 680px; margin: 0 auto;
-  box-shadow: var(--shadow-md);
-}
-.pub-av-form-card h3 {
-  font-size: 20px; font-weight: 700; margin-bottom: 24px;
-  color: var(--color-text);
-}
-.pub-av-form-msg {
-  display: flex; flex-direction: column; align-items: center; text-align: center;
-  gap: 10px; padding: 20px 10px;
-}
-.pub-av-form-msg i { width: 26px; height: 26px; color: var(--color-muted); }
-.pub-av-form-msg p { font-size: 14px; color: var(--color-muted); max-width: 380px; line-height: 1.55; }
-.av-fotos-dropzone {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 6px; text-align: center;
-  border: 1.5px dashed var(--color-border); border-radius: var(--radius-sm);
-  padding: 24px 16px; cursor: pointer; background: var(--color-bg);
-  transition: border-color .15s, background .15s;
-}
-.av-fotos-dropzone:hover,
-.av-fotos-dropzone.dragover {
-  border-color: var(--color-accent-2);
-  background: rgba(79,182,255,.08);
-}
-.av-fotos-dropzone i { width: 22px; height: 22px; color: var(--color-muted); }
-.av-fotos-dropzone p { font-size: 13px; color: var(--color-text); margin: 0; }
-.av-fotos-dropzone-hint { font-size: 11px; color: var(--color-muted); }
-
-.av-fotos-preview-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
-.av-foto-preview-wrap { position: relative; }
-.av-foto-preview-thumb {
-  width: 72px; height: 72px; object-fit: cover; display: block;
-  border-radius: var(--radius-sm); border: 1px solid var(--color-border);
-}
-.av-foto-preview-remover {
-  position: absolute; top: -6px; right: -6px;
-  width: 20px; height: 20px; border-radius: 50%;
-  background: var(--color-danger); color: #fff;
-  border: 2px solid var(--color-surface); cursor: pointer;
-  font-size: 13px; line-height: 1; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-  padding: 0;
-}
-.av-foto-preview-remover:hover { background: #C93A3E; }
-
-/* App reviews list */
-.avaliacoes-lista-app {
-  display: grid; gap: 16px;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-}
-.avaliacao-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 20px; cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow .2s, transform .2s;
-}
-.avaliacao-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
-.av-header {
-  display: flex; justify-content: space-between; align-items: flex-start;
-  margin-bottom: 10px;
-}
-.av-autor { display: flex; align-items: center; gap: 10px; }
-.av-avatar {
-  width: 36px; height: 36px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-accent-2), var(--color-accent));
-  color: #fff; font-weight: 700; font-size: 14px;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.av-autor strong { font-size: 14px; color: var(--color-text); }
-.av-data { font-size: 11px; color: var(--color-muted); }
-.av-estrelas { display: flex; gap: 2px; }
-.av-estrelas .star { font-size: 16px; }
-.av-func-tag {
-  font-size: 11px; color: var(--color-accent-dark);
-  background: rgba(47,127,240,.1); border-radius: 10px;
-  padding: 2px 10px; display: inline-block; margin-bottom: 8px;
-}
-.avaliacao-card { text-align: left; }
-.av-comentario {
-  font-size: 13px; color: var(--color-muted); line-height: 1.55; margin-bottom: 10px;
-  text-align: left; white-space: pre-line; word-break: break-word;
-}
-.av-fotos-row { display: flex; gap: 6px; margin-bottom: 10px; align-items: center; }
-.av-foto-thumb {
-  width: 48px; height: 48px; object-fit: cover;
-  border-radius: 6px; border: 1px solid var(--color-border);
-  cursor: zoom-in;
-}
-.av-fotos-mais {
-  font-size: 11px; color: var(--color-muted);
-  background: var(--color-bg); border-radius: 6px;
-  padding: 4px 8px; border: 1px solid var(--color-border);
-}
-.av-footer {
-  display: flex; align-items: center; gap: 8px;
-  border-top: 1px solid var(--color-border); padding-top: 10px; margin-top: 4px;
-}
-.av-chat-count { font-size: 11px; color: var(--color-muted); }
-
-/* Avaliacao detail modal */
-.modal-avaliacao-lg { max-width: 720px; }
-.modal-foto-av { max-width: 640px; }
-.modal-foto-av-body { padding: 0; background: #0A1B30; align-items: center; justify-content: center; display: flex; }
-.modal-foto-av-body img { width: 100%; max-height: 78vh; object-fit: contain; display: block; }
-.modal-av-body { display: flex; flex-direction: column; gap: 20px; }
-.av-detail-header {
-  display: flex; justify-content: space-between; align-items: flex-start;
-  padding-bottom: 16px; border-bottom: 1px solid var(--color-border);
-}
-.av-func-pill {
-  background: rgba(47,127,240,.08); color: var(--color-accent-dark);
-  border-radius: 20px; padding: 6px 14px; font-size: 12px; font-weight: 600;
-}
-.av-comentario-full {
-  font-size: 14px; line-height: 1.65; color: var(--color-text);
-  background: var(--color-bg); border-radius: var(--radius-sm);
-  padding: 14px 16px; text-align: left; white-space: pre-line; word-break: break-word;
-}
-.av-fotos-grid {
-  display: flex; gap: 8px; flex-wrap: wrap;
-}
-.av-foto-full {
-  width: 120px; height: 120px; object-fit: cover;
-  border-radius: var(--radius-sm); border: 1px solid var(--color-border);
-  cursor: zoom-in;
-}
-
-/* Chat */
-.av-chat-section { border-top: 1px solid var(--color-border); padding-top: 16px; }
-.av-chat-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--color-text); }
-.av-chat-msgs {
-  max-height: 240px; overflow-y: auto;
-  display: flex; flex-direction: column; gap: 8px;
-  padding: 8px; background: var(--color-bg);
-  border-radius: var(--radius-sm); margin-bottom: 10px;
-}
-.chat-empty { font-size: 13px; color: var(--color-muted); text-align: center; padding: 20px; }
-.chat-msg {
-  max-width: 75%; padding: 10px 14px;
-  border-radius: 14px; font-size: 13px; line-height: 1.5;
-}
-.chat-msg.equipa {
-  background: var(--color-accent); color: #fff;
-  align-self: flex-end; border-bottom-right-radius: 4px;
-}
-.chat-msg.cliente {
-  background: var(--color-surface); color: var(--color-text);
-  border: 1px solid var(--color-border);
-  align-self: flex-start; border-bottom-left-radius: 4px;
-}
-.chat-msg-texto { text-align: left; white-space: pre-line; word-break: break-word; }
-.chat-msg-autor { font-size: 10px; font-weight: 700; margin-bottom: 3px; opacity: .8; }
-.chat-msg-hora { font-size: 10px; opacity: .6; margin-top: 3px; text-align: right; }
-.av-chat-input-row {
-  display: flex; gap: 8px;
-}
-.av-chat-input-row input {
-  flex: 1;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 9px 12px; font-size: 13px;
-  font-family: inherit; outline: none;
-  background: var(--color-surface);
-  transition: border-color .15s;
-}
-.av-chat-input-row input:focus { border-color: var(--color-accent); }
-
-/* ── ETAPA 22: CTA fixo mobile ────────────────────────────── */
-.pub-sticky-cta { display: none; }
-
-@media (max-width: 768px) {
-  .pub-sticky-cta {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    position: fixed; left: 12px; right: 12px;
-    bottom: calc(14px + env(safe-area-inset-bottom));
-    z-index: 500;
-    padding: 14px 20px;
-    background: linear-gradient(135deg,#4FB6FF,#2F7FF0);
-    color: #fff; text-decoration: none;
-    border-radius: 999px;
-    font-size: 14px; font-weight: 700;
-    box-shadow: 0 10px 30px rgba(47,127,240,.45);
-  }
-  .pub-sticky-cta svg { width: 17px; height: 17px; }
-  /* Evita que o CTA fixo tape o fim do formulário de contacto */
-  #pub-contacto { padding-bottom: 96px; }
-}
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BORG Services | Limpeza Profissional no Porto</title>
+  <meta name="description" content="BORG Services — limpeza profissional para casas e escritórios no Porto. Profissionalismo, higiene e cuidado em cada detalhe. Peça já o seu orçamento." />
+  <link rel="canonical" href="https://borgservices.co.uk/" />
+
+  <!-- Open Graph (partilhas no WhatsApp, Facebook, etc.) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="BORG Services" />
+  <meta property="og:title" content="BORG Services | Limpeza Profissional no Porto" />
+  <meta property="og:description" content="Limpeza que transforma o seu espaço. Profissionalismo, higiene e cuidado em cada detalhe do seu lar ou escritório." />
+  <meta property="og:url" content="https://borgservices.co.uk/" />
+  <meta property="og:image" content="https://borgservices.co.uk/img/Borg_Logo.webp" />
+  <meta name="twitter:card" content="summary" />
+  <link rel="stylesheet" href="style.css?v=11" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lexend:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.webp">
+  <link rel="icon" type="image/webp" sizes="32x32" href="img/favicon-32x32.webp">
+  <link rel="icon" type="image/webp" sizes="16x16" href="img/favicon-16x16.webp">
+  <link rel="manifest" href="img/site.webmanifest">
+</head>
+
+<body>
+
+  <!-- ── Loading Overlay ──────────────────────────────────── -->
+  <div id="loadingOverlay" style="position:fixed;inset:0;background:rgba(255,255,255,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:14px;">
+    <img src="img/Borg_Logo.webp" alt="BORG" style="width:64px;height:64px;border-radius:14px;object-fit:contain;background:#fff;padding:6px;box-shadow:0 0 0 1px rgba(47,127,240,.2);" />
+    <div style="width:44px;height:44px;border:3px solid #e5e7eb;border-top:3px solid #1a3a6c;border-radius:50%;animation:borg-spin 0.75s linear infinite;"></div>
+    <p style="margin:0;font-family:Inter,sans-serif;font-size:14px;color:#4b5563;font-weight:500;">A carregar dados...</p>
+  </div>
+  <!-- ════════════════════════════════════════════════════════
+       SITE PÚBLICO (Sem login necessário)
+       ════════════════════════════════════════════════════════ -->
+  <div id="public-site">
+
+    <!-- Navbar Pública -->
+    <nav class="pub-nav" id="pubNav">
+      <div class="pub-nav-inner">
+        <a class="pub-nav-logo" href="#pub-hero" onclick="smoothScroll('pub-hero')">
+          <img src="img/Borg_Logo.webp" alt="BORG" class="pub-logo-img" />
+          <span class="pub-logo-text">BORG Services</span>
+        </a>
+        <div class="pub-nav-links" id="pubNavLinks">
+          <a href="#pub-servicos" onclick="smoothScroll('pub-servicos')">Serviços</a>
+          <a href="#pub-como" onclick="smoothScroll('pub-como')">Como Funciona</a>
+          <a href="#pub-produtos" onclick="smoothScroll('pub-produtos')">Produtos</a>
+          <a href="#pub-avaliacoes" onclick="smoothScroll('pub-avaliacoes')">Avaliações</a>
+          <a href="#pub-contacto" onclick="smoothScroll('pub-contacto')">Contacto</a>
+        </div>
+        <div class="pub-nav-actions">
+          <button class="btn-primary" id="pub-btn-entrar" onclick="abrirLoginPublico()">
+            <i data-lucide="log-in"></i> <span>Entrar</span>
+          </button>
+          <button class="btn-primary pub-hidden" id="pub-btn-painel" onclick="irParaApp()">
+            <i data-lucide="layout-dashboard"></i> <span>Painel</span>
+          </button>
+        </div>
+        <button class="pub-hamburger" id="pubHamburger" onclick="togglePubMenu()" aria-label="Menu">
+          <i data-lucide="menu"></i>
+        </button>
+      </div>
+      <!-- Mobile menu -->
+      <div class="pub-mobile-menu" id="pubMobileMenu">
+        <a href="#pub-servicos" onclick="smoothScroll('pub-servicos');  closePubMenu()">Serviços</a>
+        <a href="#pub-como" onclick="smoothScroll('pub-como');      closePubMenu()">Como Funciona</a>
+        <a href="#pub-produtos" onclick="smoothScroll('pub-produtos');   closePubMenu()">Produtos</a>
+        <a href="#pub-avaliacoes" onclick="smoothScroll('pub-avaliacoes'); closePubMenu()">Avaliações</a>
+        <a href="#pub-contacto" onclick="smoothScroll('pub-contacto');   closePubMenu()">Contacto</a>
+        <button class="btn-primary" id="pub-mobile-entrar" onclick="abrirLoginPublico();closePubMenu()">
+          <i data-lucide="log-in"></i> Entrar
+        </button>
+        <button class="btn-primary pub-hidden" id="pub-mobile-painel" onclick="irParaApp();closePubMenu()">
+          <i data-lucide="layout-dashboard"></i> Painel
+        </button>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pub-hero" id="pub-hero">
+      <div class="pub-hero-shapes"></div>
+      <div class="pub-hero-content">
+        <div class="pub-hero-badge">
+          <span class="badge-dot"></span> Serviço Profissional
+        </div>
+        <h1 class="pub-hero-title" id="pub-hero-titulo" data-content-key="hero_titulo">
+          Limpeza que Transforma o seu Espaço
+        </h1>
+        <button class="edit-inline-btn pub-edit-trigger" id="edit-hero-titulo" onclick="iniciarEdicaoInline('hero_titulo','pub-hero-titulo')" style="display:none;" title="Editar título">
+          <i data-lucide="edit-3"></i>
+        </button>
+        <p class="pub-hero-sub" id="pub-hero-subtitulo" data-content-key="hero_subtitulo">
+          Profissionalismo, higiene e cuidado em cada detalhe do seu lar ou escritório.
+        </p>
+        <button class="edit-inline-btn pub-edit-trigger" id="edit-hero-subtitulo" onclick="iniciarEdicaoInline('hero_subtitulo','pub-hero-subtitulo')" style="display:none;" title="Editar subtítulo">
+          <i data-lucide="edit-3"></i>
+        </button>
+        <div class="pub-hero-tagline">Limpeza &bull; Higienização &bull; Profissionalismo</div>
+        <div class="pub-hero-actions">
+          <a href="#pub-contacto" class="btn-hero-primary" onclick="smoothScroll('pub-contacto')">
+            <i data-lucide="message-circle"></i> Solicitar Orçamento
+          </a>
+          <a href="#pub-como" class="btn-hero-outline" onclick="smoothScroll('pub-como')">
+            <i data-lucide="play-circle"></i> Como Funciona
+          </a>
+        </div>
+      </div>
+      <div class="pub-hero-visual">
+        <img src="img/Borg_Logo.webp" alt="BORG Services" class="pub-hero-logo" />
+      </div>
+    </section>
+
+    <!-- Stats Bar -->
+    <div class="pub-stats-bar">
+      <div class="pub-stat">
+        <span class="pub-stat-num" id="pub-stat-clientes">—</span>
+        <span class="pub-stat-label">Clientes Satisfeitos</span>
+      </div>
+      <div class="pub-stat">
+        <span class="pub-stat-num" id="pub-stat-servicos">—</span>
+        <span class="pub-stat-label">Serviços Realizados</span>
+      </div>
+      <div class="pub-stat">
+        <span class="pub-stat-num" id="pub-stat-avaliacao">—</span>
+        <span class="pub-stat-label">Avaliação Média</span>
+      </div>
+      <div class="pub-stat">
+        <span class="pub-stat-num">100%</span>
+        <span class="pub-stat-label">Satisfação Garantida</span>
+      </div>
+    </div>
+
+    <!-- Services Section -->
+    <section class="pub-section pub-section-fullwidth" id="pub-servicos">
+      <div class="pub-container">
+        <div class="pub-section-header">
+          <span class="pub-eyebrow">O que fazemos</span>
+          <h2>Os Nossos Serviços</h2>
+          <p>Soluções de limpeza profissional para todas as necessidades</p>
+        </div>
+        <div class="pub-services-grid">
+          <div class="pub-service-card">
+            <div class="pub-service-icon">🏠</div>
+            <h3>Limpeza Doméstica</h3>
+            <p>Limpeza completa e profunda da sua casa com produtos de qualidade superior e equipa especializada.</p>
+          </div>
+          <div class="pub-service-card">
+            <div class="pub-service-icon">🏢</div>
+            <h3>Limpeza Comercial</h3>
+            <p>Mantemos o seu escritório e espaço comercial sempre impecável para causar a melhor impressão.</p>
+          </div>
+          <div class="pub-service-card">
+            <div class="pub-service-icon">🔨</div>
+            <h3>Limpeza Pós-Obra</h3>
+            <p>Remoção de resíduos e limpeza especializada após obras e remodelações, pronto para habitar.</p>
+          </div>
+          <div class="pub-service-card">
+            <div class="pub-service-icon">✨</div>
+            <h3>Higienização Especial</h3>
+            <p>Serviços de higienização profunda e tratamento especializado para espaços que exigem cuidado extra.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Como Trabalhamos (editável) -->
+    <section class="pub-section pub-section-dark" id="pub-como">
+      <div class="pub-container">
+        <div class="pub-section-header light">
+          <span class="pub-eyebrow light">Processo</span>
+          <h2 class="light">Como Trabalhamos</h2>
+          <div class="editable-block">
+            <p class="light" id="pub-como-subtitulo" data-content-key="como_subtitulo">
+              Um processo simples e transparente do início ao fim
+            </p>
+            <button class="edit-inline-btn light pub-edit-trigger" id="edit-como-subtitulo" onclick="iniciarEdicaoInline('como_subtitulo','pub-como-subtitulo')" style="display:none;" title="Editar">
+              <i data-lucide="edit-3"></i>
+            </button>
+          </div>
+        </div>
+        <div class="pub-steps">
+          <div class="pub-step">
+            <div class="pub-step-num">01</div>
+            <div class="pub-step-content">
+              <div class="editable-block">
+                <h3 id="pub-passo1-titulo" data-content-key="passo1_titulo">Contacto</h3>
+                <button class="edit-inline-btn light pub-edit-trigger" id="edit-passo1-titulo" onclick="iniciarEdicaoInline('passo1_titulo','pub-passo1-titulo')" style="display:none;"><i data-lucide="edit-3"></i></button>
+              </div>
+              <div class="editable-block">
+                <p id="pub-passo1-desc" data-content-key="passo1_desc">Entre em contacto por telefone, email ou pelo formulário nesta página. Respondemos rapidamente.</p>
+                <button class="edit-inline-btn light pub-edit-trigger" id="edit-passo1-desc" onclick="iniciarEdicaoInline('passo1_desc','pub-passo1-desc')" style="display:none;"><i data-lucide="edit-3"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="pub-step-connector"><i data-lucide="chevron-right"></i></div>
+          <div class="pub-step">
+            <div class="pub-step-num">02</div>
+            <div class="pub-step-content">
+              <div class="editable-block">
+                <h3 id="pub-passo2-titulo" data-content-key="passo2_titulo">Orçamento</h3>
+                <button class="edit-inline-btn light pub-edit-trigger" id="edit-passo2-titulo" onclick="iniciarEdicaoInline('passo2_titulo','pub-passo2-titulo')" style="display:none;"><i data-lucide="edit-3"></i></button>
+              </div>
+              <div class="editable-block">
+                <p id="pub-passo2-desc" data-content-key="passo2_desc">Avaliamos as suas necessidades e apresentamos um orçamento personalizado e sem compromisso.</p>
+                <button class="edit-inline-btn light pub-edit-trigger" id="edit-passo2-desc" onclick="iniciarEdicaoInline('passo2_desc','pub-passo2-desc')" style="display:none;"><i data-lucide="edit-3"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="pub-step-connector"><i data-lucide="chevron-right"></i></div>
+          <div class="pub-step">
+            <div class="pub-step-num">03</div>
+            <div class="pub-step-content">
+              <div class="editable-block">
+                <h3 id="pub-passo3-titulo" data-content-key="passo3_titulo">Serviço</h3>
+                <button class="edit-inline-btn light pub-edit-trigger" id="edit-passo3-titulo" onclick="iniciarEdicaoInline('passo3_titulo','pub-passo3-titulo')" style="display:none;"><i data-lucide="edit-3"></i></button>
+              </div>
+              <div class="editable-block">
+                <p id="pub-passo3-desc" data-content-key="passo3_desc">A nossa equipa realiza o trabalho com profissionalismo, qualidade e pontualidade garantida.</p>
+                <button class="edit-inline-btn light pub-edit-trigger" id="edit-passo3-desc" onclick="iniciarEdicaoInline('passo3_desc','pub-passo3-desc')" style="display:none;"><i data-lucide="edit-3"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Produtos Section -->
+    <section class="pub-section" id="pub-produtos">
+      <div class="pub-container">
+        <div class="pub-section-header">
+          <span class="pub-eyebrow">Qualidade</span>
+          <h2>Produtos que Utilizamos</h2>
+          <div class="editable-block" style="justify-content:center;">
+            <p id="pub-produtos-desc" data-content-key="produtos_desc">
+              Utilizamos apenas produtos certificados e de alta qualidade para uma limpeza eficiente e segura.
+            </p>
+            <button class="edit-inline-btn pub-edit-trigger" id="edit-produtos-desc" onclick="iniciarEdicaoInline('produtos_desc','pub-produtos-desc')" style="display:none;"><i data-lucide="edit-3"></i></button>
+          </div>
+        </div>
+        <div id="pub-produtos-grid" class="pub-produtos-grid">
+          <div class="pub-prod-empty" id="pub-prod-empty">
+            <i data-lucide="package"></i>
+            <p>Nenhum produto adicionado ainda</p>
+          </div>
+        </div>
+        <div id="pub-produtos-gerir-btn" style="display:none;text-align:center;margin-top:28px;">
+          <button class="btn-primary" onclick="irParaApp('produtos')">
+            <i data-lucide="settings"></i> Gerir Produtos
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Avaliações Section (Pública) -->
+    <section class="pub-section pub-section-reviews pub-section-fullwidth" id="pub-avaliacoes">
+      <div class="pub-container">
+        <div class="pub-section-header">
+          <span class="pub-eyebrow">O que dizem</span>
+          <h2>Avaliações dos Clientes</h2>
+          <p>Feedback real de quem já utilizou os nossos serviços</p>
+        </div>
+        <div id="pub-avaliacoes-lista" class="pub-av-grid"></div>
+        <div id="pub-avaliacoes-vermais" class="pub-av-vermais-wrap"></div>
+
+        <!-- Formulário de Nova Avaliação — aberto a qualquer visitante -->
+        <div class="pub-av-form-card">
+          <h3>Deixar a Sua Avaliação</h3>
+
+          <div id="pub-av-form-fields">
+            <div class="form-group">
+              <label>Classificação *</label>
+              <div id="av-estrelas-input" class="av-estrelas-interactive"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Nome *</label>
+                <input type="text" id="av-pub-nome" placeholder="O seu nome" />
+              </div>
+              <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="av-pub-email" placeholder="seu@email.com" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Funcionária/o que limpou</label>
+              <select id="av-pub-funcionaria">
+                <option value="">Qualquer funcionária/o</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Comentário</label>
+              <textarea id="av-pub-comentario" rows="3" placeholder="Conte a sua experiência..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Fotos <span style="font-weight:400;color:var(--color-muted)">(até 3 imagens)</span></label>
+              <div id="av-pub-fotos-dropzone" class="av-fotos-dropzone"
+                   ondragover="avFotosDragOver(event)"
+                   ondragleave="avFotosDragLeave(event)"
+                   ondrop="avFotosDrop(event)"
+                   onclick="document.getElementById('av-pub-fotos').click()">
+                <i data-lucide="upload-cloud"></i>
+                <p><strong>Arraste as fotos para aqui</strong> ou clique para escolher</p>
+                <span class="av-fotos-dropzone-hint">Até 3 imagens</span>
+                <input type="file" id="av-pub-fotos" accept="image/*" multiple onchange="previewAvaliacaoFotos(event)" style="display:none"/>
+              </div>
+              <div id="av-pub-fotos-preview" class="av-fotos-preview-row"></div>
+            </div>
+            <button class="btn-primary" onclick="enviarAvaliacaoPublica()">
+              <i data-lucide="send"></i> Enviar Avaliação
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contacto / Chat -->
+    <section class="pub-section pub-contact-section" id="pub-contacto">
+      <div class="pub-container">
+        <div class="pub-contact-grid">
+          <div class="pub-contact-info">
+            <span class="pub-eyebrow">Fale Connosco</span>
+            <h2>Pronto para ter um espaço impecável?</h2>
+            <p>Envie-nos uma mensagem e entraremos em contacto consigo o mais brevemente possível. Sem compromisso.</p>
+            <div class="pub-contact-details">
+              <div class="pub-contact-detail-row">
+                <div class="pub-contact-icon-wrap"><i data-lucide="phone"></i></div>
+                <div class="editable-block">
+                  <span id="pub-contact-telefone" data-content-key="contact_telefone">+351 XXX XXX XXX</span>
+                  <button class="edit-inline-btn pub-edit-trigger" id="edit-contact-telefone" onclick="iniciarEdicaoInline('contact_telefone','pub-contact-telefone')" style="display:none;"><i data-lucide="edit-3"></i></button>
+                </div>
+              </div>
+              <div class="pub-contact-detail-row">
+                <div class="pub-contact-icon-wrap"><i data-lucide="mail"></i></div>
+                <div class="editable-block">
+                  <span id="pub-contact-email" data-content-key="contact_email">info@borgservices.pt</span>
+                  <button class="edit-inline-btn pub-edit-trigger" id="edit-contact-email" onclick="iniciarEdicaoInline('contact_email','pub-contact-email')" style="display:none;"><i data-lucide="edit-3"></i></button>
+                </div>
+              </div>
+              <div class="pub-contact-detail-row">
+                <div class="pub-contact-icon-wrap"><i data-lucide="map-pin"></i></div>
+                <div class="editable-block">
+                  <span id="pub-contact-morada" data-content-key="contact_morada">Porto, Portugal</span>
+                  <button class="edit-inline-btn pub-edit-trigger" id="edit-contact-morada" onclick="iniciarEdicaoInline('contact_morada','pub-contact-morada')" style="display:none;"><i data-lucide="edit-3"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="pub-contact-form-card">
+            <h3>Enviar Mensagem</h3>
+            <div class="form-group">
+              <label>Nome *</label>
+              <input type="text" id="contacto-nome" placeholder="O seu nome completo" />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="contacto-email" placeholder="seu@email.com" />
+              </div>
+              <div class="form-group">
+                <label>Telefone</label>
+                <input type="tel" id="contacto-telefone" placeholder="9XX XXX XXX" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Assunto</label>
+              <select id="contacto-assunto">
+                <option value="Orçamento">Solicitar Orçamento</option>
+                <option value="Informação">Pedido de Informação</option>
+                <option value="Agendamento">Agendar Serviço</option>
+                <option value="Reclamação">Reclamação</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Mensagem *</label>
+              <textarea id="contacto-mensagem" rows="4" placeholder="Descreva o que precisa..."></textarea>
+            </div>
+            <button class="btn-primary btn-block" onclick="enviarContacto()">
+              <i data-lucide="send"></i> Enviar Mensagem
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA fixo (mobile) — conversão directa sem ter de fazer scroll -->
+    <a href="#pub-contacto" class="pub-sticky-cta" onclick="smoothScroll('pub-contacto')">
+      <i data-lucide="message-circle"></i> Pedir Orçamento
+    </a>
+
+    <!-- Footer -->
+    <footer class="pub-footer">
+      <div class="pub-container">
+        <div class="pub-footer-inner">
+          <div class="pub-footer-brand">
+            <img src="img/Borg_Logo.webp" alt="BORG" class="pub-footer-logo" />
+            <div>
+              <span class="pub-footer-name">BORG Services</span>
+              <span class="pub-footer-tag">Limpeza &bull; Higienização &bull; Profissionalismo</span>
+            </div>
+          </div>
+          <p class="pub-footer-copy">&copy; 2025 BORG Services. Todos os direitos reservados.</p>
+        </div>
+      </div>
+    </footer>
+  </div><!-- fim #public-site -->
+
+  <!-- ════════════════════════════════════════════════════════
+       APLICAÇÃO (Após login)
+       ════════════════════════════════════════════════════════ -->
+  <div id="app-container" class="app-hidden">
+
+    <!-- ── Sidebar ─────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <img src="img/Borg_Logo.webp" alt="BORG Services" class="logo-image" />
+        <span class="logo-text">BORG Services</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item" data-page="relatorios">
+          <i data-lucide="bar-chart-2"></i>
+          <span>Relatórios</span>
+        </button>
+        <button class="nav-item colaborador-only" data-page="colaborador" style="display:none;">
+          <i data-lucide="user-check"></i>
+          <span>Área Colaborador</span>
+        </button>
+        <button class="nav-item" data-page="clientes">
+          <i data-lucide="users"></i>
+          <span>Clientes</span>
+        </button>
+        <button class="nav-item" data-page="funcionarias">
+          <i data-lucide="briefcase"></i>
+          <span>Funcionárias/os</span>
+        </button>
+        <button class="nav-item" data-page="agenda">
+          <i data-lucide="calendar-days"></i>
+          <span>Agenda</span>
+        </button>
+        <button class="nav-item" data-page="produtos">
+          <i data-lucide="package"></i>
+          <span>Produtos</span>
+        </button>
+        <button class="nav-item funcionario-plus" data-page="mensagens">
+          <i data-lucide="message-square"></i>
+          <span>Mensagens</span>
+          <span class="nav-badge" id="badge-mensagens" style="display:none;">0</span>
+        </button>
+        <button class="nav-item" data-page="avaliacoes">
+          <i data-lucide="star"></i>
+          <span>Avaliações</span>
+        </button>
+        <button class="nav-item admin-only" data-page="configuracao">
+          <i data-lucide="settings"></i>
+          <span>Configuração</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="sidebar-site-btn" onclick="voltarParaSite()" title="Ver site público">
+          <i data-lucide="globe"></i>
+          <span>Ver Site</span>
+        </button>
+        <button class="sidebar-user sidebar-user-btn" type="button" onclick="abrirModalPerfil()">
+          <div class="user-avatar" id="userAvatar">U</div>
+          <div class="user-info">
+            <span class="user-name">Utilizador</span>
+            <span class="user-role">Colaborador</span>
+          </div>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ── Main Wrapper ────────────────────────────────────── -->
+    <div class="main-wrapper">
+
+      <!-- Topbar -->
+      <header class="topbar">
+        <button class="menu-toggle" id="menuToggle">
+          <i data-lucide="menu"></i>
+        </button>
+        <div class="topbar-title" id="topbarTitle">Relatórios</div>
+        <div class="topbar-actions">
+          <button class="btn-secondary btn-sm" onclick="voltarParaSite()">
+            <i data-lucide="globe"></i>
+            <span>Site</span>
+          </button>
+          <button class="btn-primary btn-sm" id="btnLoginHeader" type="button">
+            <i data-lucide="user-circle"></i>
+            <span>Perfil</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- ════════ PÁGINA: RELATÓRIOS ════════ -->
+      <main class="page active" id="page-relatorios">
+        <div class="page-header">
+          <h1>Relatórios</h1>
+          <p class="page-subtitle">Análise e estatísticas</p>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card" onclick="irParaPagina('agenda')" title="Ver agenda">
+            <div class="stat-icon" style="background:#EFF6FF;color:#3B82F6;"><i data-lucide="calendar-check"></i></div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-servicos">0</span>
+              <span class="stat-label">Serviços na Semana</span>
+            </div>
+          </div>
+          <div class="stat-card" onclick="irParaPagina('clientes')" title="Ver clientes">
+            <div class="stat-icon" style="background:#F0FDF4;color:#10B981;"><i data-lucide="users"></i></div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-clientes">0</span>
+              <span class="stat-label">Clientes Ativos</span>
+            </div>
+          </div>
+          <div class="stat-card" onclick="irParaPagina('agenda')" title="Ver agenda">
+            <div class="stat-icon" style="background:#FFF7ED;color:#F59E0B;"><i data-lucide="clock"></i></div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-horas">0h</span>
+              <span class="stat-label">Horas Totais</span>
+            </div>
+          </div>
+          <div class="stat-card" onclick="irParaPagina('funcionarias')" title="Ver funcionárias/os">
+            <div class="stat-icon" style="background:#FDF4FF;color:#A855F7;"><i data-lucide="briefcase"></i></div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-funcionarias">0</span>
+              <span class="stat-label">Funcionárias/os</span>
+            </div>
+          </div>
+        </div>
+        <div class="dashboard-grid">
+          <div class="card">
+            <div class="card-header">
+              <h2>Horas por Funcionária/os</h2>
+              <span class="badge-week">Esta semana</span>
+            </div>
+            <div id="horas-funcionarias" class="funcionaria-list">
+              <div class="empty-state-small"><i data-lucide="user-x"></i>
+                <p>Sem dados ainda</p>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h2>Serviços de Hoje</h2>
+              <span class="badge-today" id="today-date"></span>
+            </div>
+            <div id="servicos-hoje" class="servicos-hoje-list">
+              <div class="empty-state-small"><i data-lucide="calendar-x"></i>
+                <p>Sem serviços hoje</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="relatorios-grid">
+          <div class="card">
+            <div class="card-header">
+              <h2>Resumo por Funcionária</h2>
+            </div>
+            <div id="relatorio-funcionarias"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h2>Serviços por Cliente</h2>
+            </div>
+            <div id="relatorio-clientes"></div>
+          </div>
+          <div class="card full-width">
+            <div class="card-header">
+              <h2>Distribuição Semanal (horas por dia)</h2>
+            </div>
+            <div id="relatorio-semanal" class="chart-bars"></div>
+          </div>
+        </div>
+      </main>
+
+      <!-- ════════ PÁGINA: COLABORADOR ════════ -->
+      <main class="page" id="page-colaborador">
+        <div class="page-header">
+          <h1>Área do Colaborador</h1>
+          <p class="page-subtitle">Acesso temporário até o seu cargo ser atribuído.</p>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:28px;">
+            <h2 style="margin-bottom:12px;">Bem-vindo, <span id="colaborador-name">Colaborador</span></h2>
+            <p style="margin-bottom:10px;color:var(--color-muted);">O seu login foi criado com sucesso.</p>
+            <p style="margin-bottom:10px;color:var(--color-muted);">Assim que um gestor atribuir um cargo, as suas permissões serão libertadas.</p>
+          </div>
+        </div>
+      </main>
+
+      <!-- ════════ PÁGINA: CLIENTES ════════ -->
+      <main class="page" id="page-clientes">
+        <div class="page-header">
+          <h1>Clientes</h1>
+          <p class="page-subtitle">Gestão de todos os clientes</p>
+          <button class="btn-primary" onclick="abrirModalCliente()">
+            <i data-lucide="user-plus"></i> Adicionar Cliente
+          </button>
+        </div>
+        <div class="search-bar">
+          <i data-lucide="search"></i>
+          <input type="text" id="searchClientes" placeholder="Pesquisar clientes..." oninput="renderClientes()" />
+        </div>
+        <div class="table-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Telefone</th>
+                <th>Morada</th>
+                <th>Observações</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-clientes"></tbody>
+          </table>
+          <div id="clientes-empty" class="empty-state" style="display:none;">
+            <i data-lucide="users"></i>
+            <h3>Nenhum cliente encontrado</h3>
+            <p>Adicione o primeiro cliente para começar</p>
+            <button class="btn-primary" onclick="abrirModalCliente()"><i data-lucide="plus"></i> Adicionar Cliente</button>
+          </div>
+        </div>
+      </main>
+
+      <!-- ════════ PÁGINA: FUNCIONÁRIAS ════════ -->
+      <main class="page" id="page-funcionarias">
+        <div class="page-header">
+          <h1>Funcionárias/os</h1>
+          <p class="page-subtitle">Equipa de trabalho</p>
+          <button class="btn-primary" onclick="abrirModalFuncionaria()">
+            <i data-lucide="user-plus"></i> Adicionar
+          </button>
+        </div>
+        <div class="funcionarias-grid-wrapper">
+          <div id="grid-funcionarias" class="funcionarias-grid"></div>
+        </div>
+        <div id="funcionarias-empty" class="empty-state" style="display:none;">
+          <i data-lucide="briefcase"></i>
+          <h3>Nenhuma funcionária registada</h3>
+          <p>Adicione a primeira funcionária</p>
+          <button class="btn-primary" onclick="abrirModalFuncionaria()"><i data-lucide="plus"></i> Adicionar</button>
+        </div>
+      </main>
+
+      <!-- ════════ PÁGINA: AGENDA ════════ -->
+      <main class="page" id="page-agenda">
+        <div class="page-header">
+          <h1>Agenda Semanal</h1>
+          <div class="week-nav">
+            <button class="btn-icon" id="semanaAnterior"><i data-lucide="chevron-left"></i></button>
+            <span id="semana-label" class="semana-label"></span>
+            <button class="btn-icon" id="semanaProxima"><i data-lucide="chevron-right"></i></button>
+          </div>
+          <button class="btn-primary admin-only" onclick="abrirModalServico()">
+            <i data-lucide="plus"></i> Novo Serviço
+          </button>
+        </div>
+        <div class="agenda-scroll">
+          <div class="agenda-container" id="agenda-container"></div>
+        </div>
+      </main>
+
+      <!-- ════════ PÁGINA: PRODUTOS ════════ -->
+      <main class="page" id="page-produtos">
+        <div class="page-header">
+          <h1>Produtos</h1>
+          <p class="page-subtitle">Produtos utilizados nos serviços — visível no site público</p>
+          <button class="btn-primary admin-only" id="btn-add-produto" onclick="abrirModalProduto()" style="display:none;">
+            <i data-lucide="plus"></i> Adicionar Produto
+          </button>
+        </div>
+        <div id="produtos-grid" class="produtos-grid-app"></div>
+        <div id="produtos-empty" class="empty-state" style="display:none;">
+          <i data-lucide="package"></i>
+          <h3>Nenhum produto registado</h3>
+          <p>Adicione os produtos utilizados nos serviços de limpeza</p>
+          <button class="btn-primary admin-only" onclick="abrirModalProduto()" style="display:none;"><i data-lucide="plus"></i> Adicionar Produto</button>
+        </div>
+      </main>
+
+      <!-- ════════ PÁGINA: MENSAGENS ════════ -->
+      <main class="page" id="page-mensagens">
+        <div class="page-header">
+          <h1>Mensagens</h1>
+          <p class="page-subtitle">Mensagens de clientes e chat privado com a equipa</p>
+          <button class="btn-secondary" onclick="carregarMensagensApp()">
+            <i data-lucide="refresh-cw"></i> Actualizar
+          </button>
+        </div>
+
+        <div class="mensagens-tabs" id="mensagens-tabs">
+          <button class="tab-btn admin-only" data-tab="clientes" onclick="mudarTabMensagens('clientes')">
+            <i data-lucide="users"></i> Mensagens de Clientes
+          </button>
+          <button class="tab-btn" data-tab="equipa" onclick="mudarTabMensagens('equipa')">
+            <i data-lucide="message-circle"></i> Chat da Equipa
+          </button>
+          <button class="tab-btn admin-only" data-tab="portal" onclick="mudarTabMensagens('portal')">
+            <i data-lucide="user-check"></i> Chat com Clientes
+          </button>
+        </div>
+
+        <!-- Aba: Mensagens de Clientes -->
+        <div id="mensagens-tab-clientes" class="mensagens-tab-content">
+          <div id="mensagens-lista" class="mensagens-lista"></div>
+          <div id="mensagens-empty" class="empty-state" style="display:none;">
+            <i data-lucide="message-circle"></i>
+            <h3>Nenhuma mensagem</h3>
+            <p>Ainda não há mensagens de clientes pelo site</p>
+          </div>
+        </div>
+
+        <!-- Aba: Chat privado com a Equipa -->
+        <div id="mensagens-tab-equipa" class="mensagens-tab-content" style="display:none;">
+          <div class="chat-equipa-wrapper">
+            <div class="chat-equipa-lista admin-only" id="chatEquipaLista"></div>
+            <div class="chat-equipa-painel">
+              <div class="chat-equipa-titulo" id="chat-equipa-titulo">Selecione uma conversa</div>
+              <div id="chat-equipa-msgs" class="av-chat-msgs"></div>
+              <div class="av-chat-input-row">
+                <input type="text" id="chat-equipa-input" placeholder="Escrever mensagem..." onkeydown="if(event.key==='Enter')enviarMensagemInterna();" />
+                <button class="btn-primary btn-sm" onclick="enviarMensagemInterna()">
+                  <i data-lucide="send"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Aba: Chat com Clientes (Portal do Cliente) -->
+        <div id="mensagens-tab-portal" class="mensagens-tab-content" style="display:none;">
+          <div class="chat-equipa-wrapper">
+            <div class="chat-equipa-lista" id="chatClientesLista"></div>
+            <div class="chat-equipa-painel">
+              <div class="chat-equipa-titulo" id="chat-clientes-titulo">Selecione uma conversa</div>
+              <div id="chat-clientes-msgs" class="av-chat-msgs"></div>
+              <div class="av-chat-input-row">
+                <input type="text" id="chat-clientes-input" placeholder="Escrever mensagem..." onkeydown="if(event.key==='Enter')enviarMensagemParaCliente();" />
+                <button class="btn-primary btn-sm" onclick="enviarMensagemParaCliente()">
+                  <i data-lucide="send"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- ════════ PÁGINA: AVALIAÇÕES ════════ -->
+      <main class="page" id="page-avaliacoes">
+        <div class="page-header">
+          <h1>Avaliações</h1>
+          <p class="page-subtitle">Feedback dos clientes sobre os serviços prestados</p>
+          <button class="btn-secondary" onclick="carregarAvaliacoesApp()">
+            <i data-lucide="refresh-cw"></i> Actualizar
+          </button>
+        </div>
+        <div id="avaliacoes-lista" class="avaliacoes-lista-app"></div>
+        <div id="avaliacoes-empty" class="empty-state" style="display:none;">
+          <i data-lucide="star"></i>
+          <h3>Nenhuma avaliação</h3>
+          <p>As avaliações dos clientes aparecerão aqui</p>
+        </div>
+      </main>
+
+      <!-- ════════ PÁGINA: CONFIGURAÇÃO ════════ -->
+      <main class="page" id="page-configuracao">
+        <div class="page-header">
+          <h1>Configuração</h1>
+          <p class="page-subtitle">Gerir cargos de utilizadores</p>
+        </div>
+        <div class="table-card">
+          <div class="table-card-header">
+            <h2>Utilizadores</h2>
+            <p class="field-note">Apenas Gestores ou superiores podem alterar os cargos.</p>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Email</th>
+                <th>Telefone</th>
+                <th>Cargo</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-configuracao"></tbody>
+          </table>
+          <div id="configuracao-empty" class="empty-state" style="display:none;"></div>
+        </div>
+      </main>
+
+    </div><!-- fim main-wrapper -->
+  </div><!-- fim #app-container -->
+
+  <!-- ════════════════════════════════════════════════════════
+       ÁREA DO CLIENTE
+       ════════════════════════════════════════════════════════ -->
+  <div id="client-container" class="app-hidden">
+    <header class="client-header">
+      <div class="client-header-brand">
+        <img src="img/Borg_Logo.webp" alt="BORG Services" onerror="this.style.display='none'" />
+        <span>BORG Services</span>
+      </div>
+      <div class="client-header-user">
+        Olá, <strong id="client-nome">Cliente</strong>
+      </div>
+      <div class="client-header-actions">
+        <button class="btn-secondary btn-sm" onclick="voltarParaSite()">Site</button>
+        <button class="btn-secondary btn-sm" onclick="abrirModalPerfil()">Perfil</button>
+        <button class="btn-secondary btn-sm" onclick="logoutUsuario()">Sair</button>
+      </div>
+    </header>
+
+    <nav class="client-nav">
+      <button class="client-nav-item active" data-cpage="mensagens" onclick="irParaPaginaCliente('mensagens')">
+        <i data-lucide="message-circle"></i> Mensagens
+      </button>
+      <button class="client-nav-item" data-cpage="servicos" onclick="irParaPaginaCliente('servicos')">
+        <i data-lucide="calendar"></i> Os Meus Serviços
+      </button>
+    </nav>
+
+    <main class="client-main">
+      <section id="cpage-mensagens" class="client-page active">
+        <div class="client-page-header">
+          <h2>Mensagens</h2>
+          <button class="btn-primary btn-sm" onclick="abrirPedidoOrcamento()">
+            <i data-lucide="file-plus"></i> Pedir Orçamento
+          </button>
+        </div>
+        <div id="cliente-chat-mensagens" class="av-chat-msgs client-chat-msgs"></div>
+        <div class="av-chat-input-row">
+          <input type="text" id="cliente-chat-input" placeholder="Escreva uma mensagem..." onkeydown="if(event.key==='Enter')enviarMensagemCliente();" />
+          <button class="btn-primary btn-sm" onclick="enviarMensagemCliente()">
+            <i data-lucide="send"></i>
+          </button>
+        </div>
+      </section>
+
+      <section id="cpage-servicos" class="client-page">
+        <div class="client-page-header">
+          <h2>Os Meus Serviços</h2>
+        </div>
+        <div id="cliente-servicos-lista" class="cliente-servicos-lista"></div>
+        <div id="cliente-servicos-empty" class="empty-state" style="display:none;">
+          <i data-lucide="calendar-x"></i>
+          <h3>Ainda não tem serviços agendados</h3>
+          <p>Assim que tiver uma limpeza marcada, vai aparecer aqui.</p>
+        </div>
+      </section>
+    </main>
+  </div><!-- fim #client-container -->
+
+  <!-- ── Overlay Mobile ──────────────────────────────────── -->
+  <div class="overlay" id="overlay" onclick="fecharSidebar()"></div>
+
+  <!-- ════════════════════════════════════════════════════════
+       MODAIS
+       ════════════════════════════════════════════════════════ -->
+
+  <!-- Modal: Novo/Editar Serviço (com seleção múltipla de dias) -->
+  <div class="modal-backdrop" id="modal-servico">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-servico-title">Novo Serviço</h3>
+        <button class="modal-close" onclick="fecharModal('modal-servico')"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="servico-id" />
+        <div class="form-row">
+          <div class="form-group">
+            <label>Cliente *</label>
+            <select id="servico-cliente" required>
+              <option value="">Selecionar cliente...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Funcionária/os *</label>
+            <select id="servico-funcionaria" required>
+              <option value="">Selecionar funcionária/os...</option>
+            </select>
+          </div>
+        </div>
+        <!-- Seleção múltipla de dias -->
+        <div class="form-group">
+          <label>Dia(s) da Semana * <span class="field-note" style="display:inline;">(pode selecionar vários)</span></label>
+          <div class="dias-selecao" id="dias-selecao">
+            <button type="button" class="dia-btn" data-dia="0">Seg</button>
+            <button type="button" class="dia-btn" data-dia="1">Ter</button>
+            <button type="button" class="dia-btn" data-dia="2">Qua</button>
+            <button type="button" class="dia-btn" data-dia="3">Qui</button>
+            <button type="button" class="dia-btn" data-dia="4">Sex</button>
+            <button type="button" class="dia-btn" data-dia="5">Sáb</button>
+            <button type="button" class="dia-btn" data-dia="6">Dom</button>
+          </div>
+          <span class="field-note">Clique para selecionar. Azul = selecionado.</span>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Hora de Início *</label>
+            <input type="time" id="servico-inicio" required oninput="calcularHoras()" onchange="calcularHoras()" />
+          </div>
+          <div class="form-group">
+            <label>Hora de Fim *</label>
+            <input type="time" id="servico-fim" required oninput="calcularHoras()" onchange="calcularHoras()" />
+          </div>
+        </div>
+        <div class="horas-calculadas" id="horas-calculadas" style="display:none;">
+          <i data-lucide="clock"></i>
+          <span id="horas-calculadas-text"></span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="fecharModal('modal-servico')">Cancelar</button>
+        <button class="btn-primary" onclick="salvarServico()">
+          <i data-lucide="save"></i> Guardar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Novo/Editar Cliente -->
+  <div class="modal-backdrop" id="modal-cliente">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-cliente-title">Novo Cliente</h3>
+        <button class="modal-close" onclick="fecharModal('modal-cliente')"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="cliente-id" />
+        <div class="form-group">
+          <label>Nome *</label>
+          <input type="text" id="cliente-nome" placeholder="Nome completo" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Telefone</label>
+            <input type="tel" id="cliente-telefone" placeholder="9XX XXX XXX" />
+          </div>
+          <div class="form-group">
+            <label>Morada</label>
+            <input type="text" id="cliente-morada" placeholder="Rua, nº, cidade" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Observações</label>
+          <textarea id="cliente-obs" rows="3" placeholder="Notas especiais, animais, preferências..."></textarea>
+        </div>
+        <div class="form-group" id="ligar-conta-secao" style="display:none;">
+          <label>Ligar a uma conta de cliente registada</label>
+          <p class="ligar-conta-hint">Se este cliente já se registou no site, procure e ligue a conta aqui — evita ficar com dois registos separados.</p>
+          <input type="text" id="ligar-conta-busca" placeholder="Procurar por nome, telefone ou email..." oninput="buscarContasParaLigar()" />
+          <div id="ligar-conta-resultados" class="ligar-conta-resultados"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="fecharModal('modal-cliente')">Cancelar</button>
+        <button class="btn-danger" id="btn-eliminar-cliente" style="display:none;" onclick="confirmarEliminar('cliente',document.getElementById('cliente-id').value)">
+          <i data-lucide="trash-2"></i> Eliminar
+        </button>
+        <button class="btn-primary" onclick="salvarCliente()"><i data-lucide="save"></i> Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Pedido de Orçamento (Área do Cliente) -->
+  <div class="modal-backdrop" id="modal-orcamento">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Pedir Orçamento</h3>
+        <button class="modal-close" onclick="fecharModal('modal-orcamento')"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Descreva o que precisa</label>
+          <textarea id="orcamento-descricao" rows="4" placeholder="Ex: Limpeza profunda de apartamento T2, disponibilidade a partir de..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="fecharModal('modal-orcamento')">Cancelar</button>
+        <button class="btn-primary" onclick="enviarPedidoOrcamento()"><i data-lucide="send"></i> Enviar Pedido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Nova/Editar Funcionária -->
+  <div class="modal-backdrop" id="modal-funcionaria">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-funcionaria-title">Nova Funcionária</h3>
+        <button class="modal-close" onclick="fecharModal('modal-funcionaria')"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="funcionaria-id" />
+        <div class="form-group">
+          <label>Nome *</label>
+          <input type="text" id="funcionaria-nome" placeholder="Nome completo" required />
+        </div>
+        <div class="form-group">
+          <label>Cargo *</label>
+          <select id="funcionaria-nivel" required>
+            <option value="">Selecione o cargo</option>
+            <option value="5">Administrador</option>
+            <option value="4">Gestor</option>
+            <option value="3">Supervisor</option>
+            <option value="2">Assistente</option>
+            <option value="1">Auxiliar</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Contacto</label>
+          <input type="tel" id="funcionaria-contacto" placeholder="9XX XXX XXX" />
+        </div>
+        <div class="form-group">
+          <label>Conta de login vinculada</label>
+          <select id="funcionaria-usuario">
+            <option value="">Sem conta vinculada</option>
+          </select>
+          <span class="field-note">Liga esta funcionária/o à conta com que inicia sessão, para que só ela (e gestores/administradores) possa editar a sua agenda.</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="fecharModal('modal-funcionaria')">Cancelar</button>
+        <button class="btn-danger" id="btn-eliminar-funcionaria" style="display:none;" onclick="confirmarEliminar('funcionaria',document.getElementById('funcionaria-id').value)">
+          <i data-lucide="trash-2"></i> Eliminar
+        </button>
+        <button class="btn-primary" onclick="salvarFuncionaria()"><i data-lucide="save"></i> Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Produto -->
+  <div class="modal-backdrop" id="modal-produto">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-produto-title">Novo Produto</h3>
+        <button class="modal-close" onclick="fecharModal('modal-produto')"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="produto-id" />
+        <div class="form-group">
+          <label>Nome do Produto *</label>
+          <input type="text" id="produto-nome" placeholder="Ex: Desinfetante HG Professional" required />
+        </div>
+        <div class="form-group">
+          <label>Descrição</label>
+          <textarea id="produto-descricao" rows="3" placeholder="Para que serve, características..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Foto do Produto</label>
+          <div class="produto-imagem-upload">
+            <div class="produto-imagem-preview" id="produto-imagem-preview-wrap">
+              <img id="produto-imagem-preview" alt="Pré-visualização" style="display:none;" />
+              <i data-lucide="package" id="produto-imagem-preview-icon"></i>
+            </div>
+            <div class="produto-imagem-upload-actions">
+              <label class="btn-secondary produto-imagem-btn" for="produto-imagem-file">
+                <i data-lucide="camera"></i> Escolher foto
+              </label>
+              <input type="file" id="produto-imagem-file" accept="image/*" onchange="handleProdutoImagemFile(event)" hidden />
+              <button type="button" class="btn-link-danger" id="produto-imagem-remover" onclick="removerProdutoImagem()" style="display:none;">Remover</button>
+            </div>
+          </div>
+          <input type="hidden" id="produto-imagem" />
+          <span class="field-note" id="produto-imagem-nota">Escolhe uma foto do telemóvel ou computador (opcional).</span>
+        </div>
+        <div class="form-group">
+          <label>Link de Compra</label>
+          <input type="text" id="produto-link" placeholder="https://loja.com/produto" />
+          <span class="field-note">Pode adicionar múltiplos links separados por vírgula.</span>
+        </div>
+        <div class="form-group">
+          <label>Ordem (posição na grelha)</label>
+          <input type="number" id="produto-ordem" placeholder="0" min="0" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="fecharModal('modal-produto')">Cancelar</button>
+        <button class="btn-danger" id="btn-eliminar-produto" style="display:none;" onclick="confirmarEliminar('produto',document.getElementById('produto-id').value)">
+          <i data-lucide="trash-2"></i> Eliminar
+        </button>
+        <button class="btn-primary" id="btn-guardar-produto" onclick="salvarProduto()"><i data-lucide="save"></i> Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Ver Avaliação + Chat -->
+  <div class="modal-backdrop" id="modal-avaliacao">
+    <div class="modal modal-avaliacao-lg">
+      <div class="modal-header">
+        <h3>Avaliação do Cliente</h3>
+        <button class="modal-close" onclick="fecharModal('modal-avaliacao')"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body modal-av-body">
+        <input type="hidden" id="modal-av-id" />
+        <div id="modal-av-detalhe"></div>
+        <!-- Chat -->
+        <div class="av-chat-section">
+          <h4 class="av-chat-title"><i data-lucide="message-circle" style="width:16px;height:16px;vertical-align:middle;margin-right:6px"></i>Chat</h4>
+          <div id="av-chat-mensagens" class="av-chat-msgs"></div>
+          <div class="av-chat-input-row">
+            <input type="text" id="av-chat-input" placeholder="Escrever mensagem..." onkeydown="if(event.key==='Enter')enviarChatAvaliacao();" />
+            <button class="btn-primary btn-sm" onclick="enviarChatAvaliacao()">
+              <i data-lucide="send"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-danger" id="btn-eliminar-avaliacao" style="display:none;margin-right:auto;" onclick="confirmarEliminar('avaliacao', document.getElementById('modal-av-id').value)">
+          <i data-lucide="trash-2"></i> Eliminar
+        </button>
+        <button class="btn-secondary" onclick="fecharModal('modal-avaliacao')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Ver Foto de Avaliação (lightbox) -->
+  <div class="modal-backdrop" id="modal-foto-avaliacao">
+    <div class="modal modal-foto-av">
+      <div class="modal-header">
+        <h3>Foto da Avaliação</h3>
+        <button class="modal-close" onclick="fecharModal('modal-foto-avaliacao')"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body modal-foto-av-body">
+        <img id="modal-foto-avaliacao-img" src="" alt="Foto da avaliação" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Ver/Responder Mensagem -->
+  <div class="modal-backdrop" id="modal-mensagem">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Mensagem do Cliente</h3>
+        <button class="modal-close" onclick="fecharModal('modal-mensagem')"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="mensagem-id" />
+        <div class="mensagem-detalhe" id="mensagem-detalhe"></div>
+        <div class="form-group" style="margin-top:16px;">
+          <label>Resposta</label>
+          <textarea id="mensagem-resposta" rows="4" placeholder="Escreva a sua resposta..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-danger" id="btn-eliminar-mensagem" style="display:none;margin-right:auto;" onclick="confirmarEliminar('mensagem', document.getElementById('mensagem-id').value)">
+          <i data-lucide="trash-2"></i> Eliminar
+        </button>
+        <button class="btn-secondary" onclick="fecharModal('modal-mensagem')">Fechar</button>
+        <button class="btn-primary" onclick="responderMensagem()">
+          <i data-lucide="send"></i> Enviar Resposta
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Confirmar Eliminação -->
+  <div class="modal-backdrop" id="modal-confirmar">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>Confirmar Eliminação</h3>
+        <button class="modal-close" onclick="fecharModal('modal-confirmar')"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="confirm-icon"><i data-lucide="alert-triangle"></i></div>
+        <p id="confirm-msg" style="text-align:center;color:var(--color-muted);">Tem a certeza?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="fecharModal('modal-confirmar')">Cancelar</button>
+        <button class="btn-danger" id="btn-confirmar-acao"><i data-lucide="trash-2"></i> Eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Perfil -->
+  <div class="modal-backdrop" id="modal-perfil">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Perfil do Utilizador</h3>
+        <button class="modal-close" onclick="fecharModal('modal-perfil')"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="profile-photo-upload">
+          <div class="profile-photo-preview" id="profilePhotoPreview">U</div>
+          <label class="btn-secondary btn-file">
+            Alterar foto
+            <input type="file" id="perfil-foto" accept="image/*" onchange="previewPerfilFoto(event)" />
+          </label>
+        </div>
+        <div class="form-group">
+          <label>Nome</label>
+          <input type="text" id="profileName" placeholder="Seu nome" required />
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="profileEmail" placeholder="seu@email.com" required />
+        </div>
+        <div class="form-group">
+          <label>Telefone</label>
+          <input type="tel" id="profileTelefone" placeholder="9XX XXX XXX" required />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" type="button" onclick="logoutUsuario()">
+          <i data-lucide="log-out"></i> Sair
+        </button>
+        <button class="btn-secondary" type="button" onclick="fecharModal('modal-perfil')">Cancelar</button>
+        <button class="btn-primary" type="button" onclick="salvarPerfil()">
+          <i data-lucide="save"></i> Guardar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Toast de Notificação ────────────────────────────── -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ── Login Overlay ──────────────────────────────────── -->
+  <div class="login-overlay hidden" id="loginOverlay">
+    <div class="login-card">
+      <button class="modal-close login-close-btn" onclick="fecharLogin()" title="Voltar ao site">
+        <i data-lucide="x"></i>
+      </button>
+      <div class="login-brand">BORG Services</div>
+      <div class="login-tabs">
+        <button class="login-tab active" id="loginTabBtn" type="button" onclick="mostrarFormularioAuth('login')">Entrar</button>
+        <button class="login-tab" id="registerTabBtn" type="button" onclick="mostrarFormularioAuth('register')">Registar</button>
+      </div>
+      <div class="login-forms">
+        <!-- Login Form -->
+        <form id="loginForm" class="auth-form" onsubmit="event.preventDefault();loginUsuario();">
+          <div class="form-group">
+            <label for="login-email">Email</label>
+            <input type="email" id="login-email" placeholder="exemplo@dominio.com" required autocomplete="username" />
+          </div>
+          <div class="form-group">
+            <label for="login-senha">Senha</label>
+            <input type="password" id="login-senha" placeholder="Senha" required autocomplete="current-password" />
+          </div>
+          <button class="btn-primary btn-block" type="submit">Entrar</button>
+          <p class="auth-note">Não tem conta? <button type="button" class="link-button" onclick="mostrarFormularioAuth('register')">Registar</button></p>
+        </form>
+        <!-- Register Form -->
+        <form id="registerForm" class="auth-form hidden" onsubmit="event.preventDefault();registrarUsuario();">
+          <p class="auth-note" style="margin-bottom:18px;text-align:left;">
+            A sua conta é criada sem nenhum cargo atribuído. A nossa equipa define o seu acesso (cliente ou equipa) depois de criar a conta.
+          </p>
+          <div class="form-group">
+            <label for="reg-email">Email</label>
+            <input type="email" id="reg-email" placeholder="seu@email.com" required autocomplete="username" />
+          </div>
+          <div class="form-group">
+            <label for="reg-username">Username</label>
+            <input type="text" id="reg-username" placeholder="seu-username" required />
+            <span class="field-note">Escolha um username único para entrar.</span>
+          </div>
+          <div class="form-group">
+            <label for="reg-telefone">Telefone</label>
+            <input type="tel" id="reg-telefone" placeholder="9XX XXX XXX" required />
+          </div>
+          <div class="form-group">
+            <label for="reg-senha">Senha</label>
+            <input type="password" id="reg-senha" placeholder="Mínimo 6 caracteres" required autocomplete="new-password" />
+          </div>
+          <div class="form-group">
+            <label for="reg-confirmar-senha">Confirmar Senha</label>
+            <input type="password" id="reg-confirmar-senha" placeholder="Repita a senha" required autocomplete="new-password" />
+          </div>
+          <button class="btn-primary btn-block" type="submit">Criar conta</button>
+          <p class="auth-note">Já tem conta? <button type="button" class="link-button" onclick="mostrarFormularioAuth('login')">Entrar</button></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="script.js?v=11"></script>
+</body>
+
+</html>
