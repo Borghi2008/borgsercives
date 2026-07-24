@@ -3115,7 +3115,8 @@ function initScrollAnimations() {
   }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
 
   document.querySelectorAll(
-    '.pub-service-card, .pub-step, .pub-produto-card, .pub-av-card, .pub-stat'
+    '.pub-service-card, .pub-step, .pub-produto-card, .pub-av-card, .pub-stat, ' +
+    '.pub-av-form-card, .pub-contact-info, .pub-contact-form-card'
   ).forEach((el, i) => {
     el.style.transitionDelay = (i * 0.07) + 's';
     fadeObserver.observe(el);
