@@ -246,7 +246,7 @@ function irParaPagina(pagina) {
     clientes:     'Clientes',
     funcionarias: 'Funcionárias',
     configuracao: 'Configuração',
-    agenda:       'Agenda Semanal',
+    agenda:       'Agenda',
     produtos:     'Produtos',
     mensagens:    'Mensagens',
     avaliacoes:   'Avaliações',
@@ -258,7 +258,7 @@ function irParaPagina(pagina) {
   if (pagina === 'clientes')     renderClientes();
   if (pagina === 'funcionarias') renderFuncionarias();
   if (pagina === 'configuracao') renderConfiguracao();
-  if (pagina === 'agenda')       renderAgenda();
+  if (pagina === 'agenda')       mudarVistaAgenda(agendaView || 'semana');
   if (pagina === 'produtos')     renderProdutos();
   if (pagina === 'mensagens')    renderMensagens();
   if (pagina === 'colaborador')  renderColaboradorArea();
@@ -404,6 +404,14 @@ function abrirModalCliente(id) {
   document.getElementById('ligar-conta-busca').value = '';
   document.getElementById('ligar-conta-resultados').innerHTML = '';
 
+  const selUsuario = document.getElementById('cliente-usuario');
+  if (selUsuario) {
+    const jaLigados  = new Set(dados.clientes.filter(c => c.usuario_id && c.id !== id).map(c => c.usuario_id));
+    const candidatos = dados.usuarios.filter(u => u.papel === 'Cliente' && !jaLigados.has(u.id));
+    selUsuario.innerHTML = '<option value="">Sem conta vinculada</option>' +
+      candidatos.map(u => `<option value="${u.id}">${u.nome}${u.email ? ' — ' + u.email : ''}</option>`).join('');
+  }
+
   let cliente = null;
   if (id) {
     cliente = dados.clientes.find(c => c.id === id);
@@ -411,16 +419,35 @@ function abrirModalCliente(id) {
     document.getElementById('cliente-telefone').value = cliente.telefone || '';
     document.getElementById('cliente-morada').value   = cliente.morada || '';
     document.getElementById('cliente-obs').value      = cliente.obs || '';
+    if (selUsuario) selUsuario.value = cliente.usuario_id || '';
     deleteBtn.style.display = 'inline-flex';
   } else {
     document.getElementById('cliente-nome').value     = '';
     document.getElementById('cliente-telefone').value = '';
     document.getElementById('cliente-morada').value   = '';
     document.getElementById('cliente-obs').value      = '';
+    if (selUsuario) selUsuario.value = '';
     deleteBtn.style.display = 'none';
   }
   ligarSecao.style.display = (id && cliente && !cliente.usuario_id) ? 'block' : 'none';
   abrirModal('modal-cliente');
+}
+
+// Ao escolher uma conta de login no modal de Clientes, preenche
+// automaticamente o Nome e o Telefone com os dados dessa conta.
+function autoPreencherClientePorUsuario() {
+  const sel = document.getElementById('cliente-usuario');
+  const usuarioId = sel?.value;
+  if (!usuarioId) return;
+
+  const u = dados.usuarios.find(u => u.id === usuarioId);
+  if (!u) return;
+
+  const nomeInput = document.getElementById('cliente-nome');
+  if (nomeInput) nomeInput.value = u.nome || nomeInput.value;
+
+  const telInput = document.getElementById('cliente-telefone');
+  if (telInput && u.telefone) telInput.value = u.telefone;
 }
 
 function buscarContasParaLigar() {
@@ -476,11 +503,13 @@ async function salvarCliente() {
   if (!nome) { mostrarToast('O nome é obrigatório.', 'error'); return; }
 
   const id  = document.getElementById('cliente-id').value;
+  const usuarioId = document.getElementById('cliente-usuario')?.value || null;
   const obj = {
     nome,
     telefone: document.getElementById('cliente-telefone').value.trim(),
     morada:   document.getElementById('cliente-morada').value.trim(),
     obs:      document.getElementById('cliente-obs').value.trim(),
+    usuario_id: usuarioId || null,
   };
 
   if (id) {
@@ -549,8 +578,10 @@ function abrirModalFuncionaria(id) {
 
   const selUsuario = document.getElementById('funcionaria-usuario');
   if (selUsuario) {
+    const jaLigadas  = new Set(dados.funcionarias.filter(f => f.usuario_id && f.id !== id).map(f => f.usuario_id));
+    const candidatos = dados.usuarios.filter(u => u.papel !== 'Cliente' && !jaLigadas.has(u.id));
     selUsuario.innerHTML = '<option value="">Sem conta vinculada</option>' +
-      dados.usuarios.map(u => `<option value="${u.id}">${u.nome} (${normalizarPapel(u.papel)})</option>`).join('');
+      candidatos.map(u => `<option value="${u.id}">${u.nome} (${normalizarPapel(u.papel)})</option>`).join('');
   }
 
   const deleteBtn = document.getElementById('btn-eliminar-funcionaria');
@@ -558,13 +589,13 @@ function abrirModalFuncionaria(id) {
     const f = dados.funcionarias.find(f => f.id === id);
     document.getElementById('funcionaria-nome').value     = f.nome || '';
     document.getElementById('funcionaria-contacto').value = f.contacto || '';
-    document.getElementById('funcionaria-nivel').value    = f.nivel || '';
+    document.getElementById('funcionaria-nivel').value    = f.nivel || 1;
     if (selUsuario) selUsuario.value = f.usuario_id || '';
     deleteBtn.style.display = 'inline-flex';
   } else {
     document.getElementById('funcionaria-nome').value     = '';
     document.getElementById('funcionaria-contacto').value = '';
-    document.getElementById('funcionaria-nivel').value    = '';
+    document.getElementById('funcionaria-nivel').value    = 1;
     if (selUsuario) selUsuario.value = '';
     deleteBtn.style.display = 'none';
   }
@@ -732,6 +763,184 @@ document.getElementById('semanaAnterior').addEventListener('click', () => {
 document.getElementById('semanaProxima').addEventListener('click', () => {
   semanaOffset++;
   renderAgenda();
+});
+
+/* ── 9.1 Agenda: vistas Mês / Ano ─────────────────────────── */
+let agendaView    = 'semana';
+let agendaMesData = new Date(); agendaMesData.setDate(1); agendaMesData.setHours(0, 0, 0, 0);
+let agendaAnoAtual = new Date().getFullYear();
+
+const NOMES_MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho',
+                      'Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+// Converte uma data absoluta no semanaOffset (nº de semanas em relação a "hoje")
+// usado pelos serviços — permite navegar por data real mesmo sem mudar o modelo de dados.
+function offsetParaData(dataAlvo) {
+  const segundaAtual = obterSegundaFeira(0);
+  const alvo = new Date(dataAlvo); alvo.setHours(0, 0, 0, 0);
+  const dia  = alvo.getDay();
+  const diff = (dia === 0 ? -6 : 1 - dia);
+  const segundaAlvo = new Date(alvo);
+  segundaAlvo.setDate(alvo.getDate() + diff);
+  const diffDias = Math.round((segundaAlvo - segundaAtual) / 86400000);
+  return Math.round(diffDias / 7);
+}
+
+function contarServicosNoDia(data) {
+  const offset = offsetParaData(data);
+  const diaSemana = data.getDay();
+  const diaIndex  = diaSemana === 0 ? 6 : diaSemana - 1; // Seg=0 ... Dom=6
+  return dados.servicos.filter(s => s.semanaOffset === offset && Number(s.dia) === diaIndex).length;
+}
+
+function irParaDataNaAgenda(data) {
+  semanaOffset = offsetParaData(data);
+  mudarVistaAgenda('semana');
+}
+
+function mudarVistaAgenda(view) {
+  agendaView = view;
+  document.querySelectorAll('.view-switch-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  document.getElementById('navSemana').style.display = view === 'semana' ? 'flex' : 'none';
+  document.getElementById('navMes').style.display    = view === 'mes'    ? 'flex' : 'none';
+  document.getElementById('navAno').style.display    = view === 'ano'    ? 'flex' : 'none';
+  document.getElementById('viewSemana').style.display = view === 'semana' ? 'block' : 'none';
+  document.getElementById('viewMes').style.display    = view === 'mes'    ? 'block' : 'none';
+  document.getElementById('viewAno').style.display    = view === 'ano'    ? 'block' : 'none';
+
+  if (view === 'semana') renderAgenda();
+  else if (view === 'mes') renderAgendaMes();
+  else renderAgendaAno();
+}
+
+function popularSelectsAgenda() {
+  const mesSelect    = document.getElementById('mesSelect');
+  const mesAnoSelect = document.getElementById('mesAnoSelect');
+  const anoSelect    = document.getElementById('anoSelect');
+  if (mesSelect && !mesSelect.options.length) {
+    mesSelect.innerHTML = NOMES_MESES.map((m, i) => `<option value="${i}">${m}</option>`).join('');
+  }
+  const anoAtualReal = new Date().getFullYear();
+  const anos = [];
+  for (let a = anoAtualReal - 5; a <= anoAtualReal + 5; a++) anos.push(a);
+  if (mesAnoSelect && !mesAnoSelect.options.length) {
+    mesAnoSelect.innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join('');
+  }
+  if (anoSelect && !anoSelect.options.length) {
+    anoSelect.innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join('');
+  }
+}
+
+function renderAgendaMes() {
+  popularSelectsAgenda();
+  document.getElementById('mesSelect').value    = agendaMesData.getMonth();
+  document.getElementById('mesAnoSelect').value = agendaMesData.getFullYear();
+
+  const ano = agendaMesData.getFullYear();
+  const mes = agendaMesData.getMonth();
+  const ultimoDiaMes = new Date(ano, mes + 1, 0);
+
+  let diaSemanaInicio = new Date(ano, mes, 1).getDay();
+  diaSemanaInicio = diaSemanaInicio === 0 ? 6 : diaSemanaInicio - 1;
+
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+
+  const grid = document.getElementById('agenda-mes-grid');
+  grid.innerHTML = '';
+
+  NOMES_DIAS.forEach(n => {
+    const h = document.createElement('div');
+    h.className = 'agenda-mes-dow';
+    h.textContent = n;
+    grid.appendChild(h);
+  });
+
+  for (let i = 0; i < diaSemanaInicio; i++) {
+    const vazio = document.createElement('div');
+    vazio.className = 'agenda-mes-dia vazio';
+    grid.appendChild(vazio);
+  }
+
+  for (let dia = 1; dia <= ultimoDiaMes.getDate(); dia++) {
+    const data   = new Date(ano, mes, dia);
+    const isHoje = data.getTime() === hoje.getTime();
+    const qtd    = contarServicosNoDia(data);
+    const cel    = document.createElement('button');
+    cel.type = 'button';
+    cel.className = 'agenda-mes-dia' + (isHoje ? ' hoje' : '');
+    cel.innerHTML = `<span class="mes-dia-num">${dia}</span>${qtd ? `<span class="mes-dia-badge">${qtd}</span>` : ''}`;
+    cel.addEventListener('click', () => irParaDataNaAgenda(data));
+    grid.appendChild(cel);
+  }
+}
+
+function renderAgendaAno() {
+  popularSelectsAgenda();
+  document.getElementById('anoSelect').value = agendaAnoAtual;
+
+  const grid = document.getElementById('agenda-ano-grid');
+  grid.innerHTML = '';
+  const hoje = new Date();
+
+  for (let m = 0; m < 12; m++) {
+    const ultimoDia = new Date(agendaAnoAtual, m + 1, 0);
+    let total = 0;
+    for (let d = 1; d <= ultimoDia.getDate(); d++) {
+      total += contarServicosNoDia(new Date(agendaAnoAtual, m, d));
+    }
+    const isMesAtual = agendaAnoAtual === hoje.getFullYear() && m === hoje.getMonth();
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'agenda-ano-mes' + (isMesAtual ? ' atual' : '');
+    card.innerHTML = `
+      <span class="ano-mes-nome">${NOMES_MESES[m]}</span>
+      <span class="ano-mes-total">${total} serviço${total === 1 ? '' : 's'}</span>`;
+    card.addEventListener('click', () => {
+      agendaMesData = new Date(agendaAnoAtual, m, 1);
+      mudarVistaAgenda('mes');
+    });
+    grid.appendChild(card);
+  }
+}
+
+document.querySelectorAll('.view-switch-btn').forEach(btn => {
+  btn.addEventListener('click', () => mudarVistaAgenda(btn.dataset.view));
+});
+
+document.getElementById('semanaLabelBtn').addEventListener('click', () => {
+  agendaMesData = new Date(obterSegundaFeira(semanaOffset));
+  agendaMesData.setDate(1);
+  mudarVistaAgenda('mes');
+});
+
+document.getElementById('mesAnterior').addEventListener('click', () => {
+  agendaMesData.setMonth(agendaMesData.getMonth() - 1);
+  renderAgendaMes();
+});
+document.getElementById('mesProximo').addEventListener('click', () => {
+  agendaMesData.setMonth(agendaMesData.getMonth() + 1);
+  renderAgendaMes();
+});
+document.getElementById('mesSelect').addEventListener('change', e => {
+  agendaMesData.setMonth(Number(e.target.value));
+  renderAgendaMes();
+});
+document.getElementById('mesAnoSelect').addEventListener('change', e => {
+  agendaMesData.setFullYear(Number(e.target.value));
+  renderAgendaMes();
+});
+
+document.getElementById('anoAnterior').addEventListener('click', () => {
+  agendaAnoAtual--;
+  renderAgendaAno();
+});
+document.getElementById('anoProximo').addEventListener('click', () => {
+  agendaAnoAtual++;
+  renderAgendaAno();
+});
+document.getElementById('anoSelect').addEventListener('change', e => {
+  agendaAnoAtual = Number(e.target.value);
+  renderAgendaAno();
 });
 
 /* ── 10. Serviços (CRUD) ──────────────────────────────────── */
