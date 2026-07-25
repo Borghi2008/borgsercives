@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
   <title>BORG Services | Limpeza Profissional no Porto</title>
   <meta name="description" content="BORG Services — limpeza profissional para casas e escritórios no Porto. Profissionalismo, higiene e cuidado em cada detalhe. Peça já o seu orçamento." />
   <link rel="canonical" href="https://borgservices.co.uk/" />
@@ -652,18 +653,50 @@
       <!-- ════════ PÁGINA: AGENDA ════════ -->
       <main class="page" id="page-agenda">
         <div class="page-header">
-          <h1>Agenda Semanal</h1>
-          <div class="week-nav">
+          <h1>Agenda</h1>
+          <div class="agenda-view-switch">
+            <button type="button" class="view-switch-btn active" data-view="semana">Semana</button>
+            <button type="button" class="view-switch-btn" data-view="mes">Mês</button>
+            <button type="button" class="view-switch-btn" data-view="ano">Ano</button>
+          </div>
+
+          <div class="week-nav" id="navSemana">
             <button class="btn-icon" id="semanaAnterior"><i data-lucide="chevron-left"></i></button>
-            <span id="semana-label" class="semana-label"></span>
+            <button type="button" class="semana-label-btn" id="semanaLabelBtn" title="Ver calendário completo">
+              <span id="semana-label" class="semana-label"></span>
+              <i data-lucide="calendar-days"></i>
+            </button>
             <button class="btn-icon" id="semanaProxima"><i data-lucide="chevron-right"></i></button>
           </div>
+
+          <div class="week-nav" id="navMes" style="display:none;">
+            <button class="btn-icon" id="mesAnterior"><i data-lucide="chevron-left"></i></button>
+            <select id="mesSelect" class="agenda-select"></select>
+            <select id="mesAnoSelect" class="agenda-select"></select>
+            <button class="btn-icon" id="mesProximo"><i data-lucide="chevron-right"></i></button>
+          </div>
+
+          <div class="week-nav" id="navAno" style="display:none;">
+            <button class="btn-icon" id="anoAnterior"><i data-lucide="chevron-left"></i></button>
+            <select id="anoSelect" class="agenda-select"></select>
+            <button class="btn-icon" id="anoProximo"><i data-lucide="chevron-right"></i></button>
+          </div>
+
           <button class="btn-primary admin-only" onclick="abrirModalServico()">
             <i data-lucide="plus"></i> Novo Serviço
           </button>
         </div>
-        <div class="agenda-scroll">
+
+        <div class="agenda-scroll" id="viewSemana">
           <div class="agenda-container" id="agenda-container"></div>
+        </div>
+
+        <div id="viewMes" style="display:none;">
+          <div class="agenda-mes-grid" id="agenda-mes-grid"></div>
+        </div>
+
+        <div id="viewAno" style="display:none;">
+          <div class="agenda-ano-grid" id="agenda-ano-grid"></div>
         </div>
       </main>
 
@@ -953,6 +986,13 @@
           <label>Observações</label>
           <textarea id="cliente-obs" rows="3" placeholder="Notas especiais, animais, preferências..."></textarea>
         </div>
+        <div class="form-group">
+          <label>Conta de login vinculada</label>
+          <select id="cliente-usuario" onchange="autoPreencherClientePorUsuario()">
+            <option value="">Sem conta vinculada</option>
+          </select>
+          <span class="field-note">Liga este cliente à conta com que inicia sessão no site — os campos são preenchidos automaticamente e o cliente passa a ver o seu histórico na Área do Cliente.</span>
+        </div>
         <div class="form-group" id="ligar-conta-secao" style="display:none;">
           <label>Ligar a uma conta de cliente registada</label>
           <p class="ligar-conta-hint">Se este cliente já se registou no site, procure e ligue a conta aqui — evita ficar com dois registos separados.</p>
@@ -1003,27 +1043,17 @@
           <label>Nome *</label>
           <input type="text" id="funcionaria-nome" placeholder="Nome completo" required />
         </div>
-        <div class="form-group">
-          <label>Cargo *</label>
-          <select id="funcionaria-nivel" required>
-            <option value="">Selecione o cargo</option>
-            <option value="5">Administrador</option>
-            <option value="4">Gestor</option>
-            <option value="3">Supervisor</option>
-            <option value="2">Assistente</option>
-            <option value="1">Auxiliar</option>
-          </select>
-        </div>
+        <input type="hidden" id="funcionaria-nivel" value="1" />
         <div class="form-group">
           <label>Contacto</label>
           <input type="tel" id="funcionaria-contacto" placeholder="9XX XXX XXX" />
         </div>
         <div class="form-group">
           <label>Conta de login vinculada</label>
-          <select id="funcionaria-usuario">
+          <select id="funcionaria-usuario" onchange="autoPreencherFuncionariaPorUsuario()">
             <option value="">Sem conta vinculada</option>
           </select>
-          <span class="field-note">Liga esta funcionária/o à conta com que inicia sessão, para que só ela (e gestores/administradores) possa editar a sua agenda.</span>
+          <span class="field-note">Liga esta funcionária/o à conta com que inicia sessão — o cargo é definido em "Configuração" e o nome preenche-se automaticamente.</span>
         </div>
       </div>
       <div class="modal-footer">
