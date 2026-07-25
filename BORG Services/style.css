@@ -941,9 +941,16 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
   padding: 32px; box-shadow: var(--shadow-md);
-  display: flex; flex-direction: column; gap: 20px;
 }
 .pub-contact-form-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+#contactoFormWrap, #contactoTicketWrap { display: flex; flex-direction: column; gap: 20px; }
+.ticket-hint { font-size: 13px; color: var(--color-muted); margin-top: -12px; }
+.ticket-novo-btn {
+  align-self: center; background: none; border: none; cursor: pointer;
+  color: var(--color-muted); font-size: 12.5px; text-decoration: underline;
+  font-family: inherit; padding: 4px;
+}
+.ticket-novo-btn:hover { color: var(--color-accent); }
 
 /* Footer */
 .pub-footer {
