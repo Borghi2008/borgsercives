@@ -105,7 +105,7 @@ function esconderLoading() {
 /* ── Carregar todos os dados do Supabase ──────────────────── */
 
 async function carregarDados() {
-  const [resC, resF, resS, resU, resP, resM, resST, resAv, resAvC, resMI, resMC] = await Promise.all([
+  const [resC, resF, resS, resU, resP, resM, resST, resAv, resAvC, resMI, resMC, resCC] = await Promise.all([
     sb.from('clientes').select('*').order('created_at', { ascending: true }),
     sb.from('funcionarias').select('*').order('created_at', { ascending: true }),
     sb.from('servicos').select('*').order('created_at', { ascending: true }),
@@ -117,6 +117,7 @@ async function carregarDados() {
     sb.from('avaliacoes_chat').select('*').order('created_at', { ascending: true }),
     sb.from('mensagens_internas').select('*').order('created_at', { ascending: true }),
     sb.from('mensagens_clientes').select('*').order('created_at', { ascending: true }),
+    sb.from('contactos_chat').select('*').order('created_at', { ascending: true }),
   ]);
 
   dados.clientes     = resC.data || [];
@@ -128,6 +129,7 @@ async function carregarDados() {
   dados.avaliacoes_chat    = resAvC.data || [];
   dados.mensagens_internas = resMI.data || [];
   dados.mensagens_clientes = resMC.data || [];
+  dados.contactos_chat     = resCC.data || [];
 
   // site_textos: array → mapa {chave: valor}
   dados.site_textos = {};
@@ -1601,16 +1603,15 @@ async function abrirModalMensagem(id) {
   document.getElementById('mensagem-detalhe').innerHTML = `
     <h4>${m.nome}</h4>
     <div class="md-meta">${m.assunto || 'Contacto Geral'} · ${data}${m.email ? ` · ${m.email}` : ''}${m.telefone ? ` · ${m.telefone}` : ''}</div>
-    <div class="md-texto">${m.mensagem}</div>
-    ${m.respondido ? `
-      <div class="md-resp">
-        <div class="md-resp-label">A sua resposta</div>
-        <div class="md-resp-texto">${m.resposta || ''}</div>
-      </div>` : ''}`;
-  document.getElementById('mensagem-resposta').value = m.resposta || '';
+    ${m.cliente_id ? '<span class="mensagem-badge-resp">Já é cliente</span>' : ''}`;
+
+  renderChatTicket(id);
 
   const delBtnMsg = document.getElementById('btn-eliminar-mensagem');
   if (delBtnMsg) delBtnMsg.style.display = usuarioEhGestorPlus() ? 'inline-flex' : 'none';
+
+  const btnConverter = document.getElementById('btn-converter-cliente');
+  if (btnConverter) btnConverter.style.display = m.cliente_id ? 'none' : 'inline-flex';
 
   abrirModal('modal-mensagem');
 
@@ -1620,20 +1621,93 @@ async function abrirModalMensagem(id) {
   }
 }
 
-async function responderMensagem() {
-  const id       = document.getElementById('mensagem-id').value;
-  const resposta = document.getElementById('mensagem-resposta').value.trim();
-  if (!resposta) { mostrarToast('Escreva uma resposta antes de guardar.', 'error'); return; }
+function renderChatTicket(id) {
+  let msgs = dados.contactos_chat.filter(c => c.contacto_id === id);
 
-  const { error } = await sb.from('contactos').update({ resposta, respondido: true, lido: true }).eq('id', id);
-  if (error) { mostrarToast('Erro ao guardar resposta.', 'error'); return; }
+  // Tickets criados antes desta atualização não têm a 1ª mensagem em
+  // contactos_chat — mostra a mensagem original guardada em "contactos".
+  if (!msgs.length) {
+    const m = dados.mensagens.find(m => m.id === id);
+    if (m?.mensagem) {
+      msgs = [{ autor_nome: m.nome, autor_tipo: 'visitante', mensagem: m.mensagem, created_at: m.created_at }];
+    }
+  }
+
+  const cont = document.getElementById('ticketChatMsgs');
+  if (!cont) return;
+  if (!msgs.length) {
+    cont.innerHTML = '<p class="chat-empty">Ainda sem mensagens.</p>';
+    return;
+  }
+  cont.innerHTML = msgs.map(m => {
+    const hora = m.created_at
+      ? new Date(m.created_at).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })
+      : '';
+    const isEquipa = m.autor_tipo === 'equipa';
+    return `
+      <div class="chat-msg ${isEquipa ? 'equipa' : 'cliente'}">
+        <div class="chat-msg-autor">${m.autor_nome}${isEquipa ? ' · Equipa BORG' : ''}</div>
+        <div class="chat-msg-texto">${m.mensagem}</div>
+        <div class="chat-msg-hora">${hora}</div>
+      </div>`;
+  }).join('');
+  cont.scrollTop = cont.scrollHeight;
+}
+
+async function enviarRespostaTicket() {
+  const id    = document.getElementById('mensagem-id').value;
+  const input = document.getElementById('ticketChatInput');
+  const texto = (input?.value || '').trim();
+  if (!id || !texto) return;
+
+  const autorNome = authUsuario ? (authUsuario.nome || 'Equipa') : 'Equipa';
+  const obj = { id: gerarId(), contacto_id: id, autor_nome: autorNome, autor_tipo: 'equipa', mensagem: texto };
+
+  const { error } = await sb.from('contactos_chat').insert(obj);
+  if (error) { mostrarToast('Erro ao enviar resposta.', 'error'); return; }
+
+  dados.contactos_chat.push({ ...obj, created_at: new Date().toISOString() });
+  input.value = '';
+  renderChatTicket(id);
 
   const m = dados.mensagens.find(m => m.id === id);
-  if (m) { m.resposta = resposta; m.respondido = true; m.lido = true; }
+  if (m && !m.respondido) {
+    await sb.from('contactos').update({ respondido: true, lido: true }).eq('id', id);
+    m.respondido = true; m.lido = true;
+    renderMensagens();
+  }
+}
 
+// Cria um Cliente a partir de um ticket — é assim que alguém que ainda não
+// era cliente passa a sê-lo (tipicamente depois de já ter tido um serviço).
+async function converterTicketEmCliente() {
+  const id = document.getElementById('mensagem-id').value;
+  const m  = dados.mensagens.find(m => m.id === id);
+  if (!m) return;
+
+  const ok = confirm(`Criar um registo de Cliente para "${m.nome}"?`);
+  if (!ok) return;
+
+  const novoId = gerarId();
+  const novoCliente = {
+    id: novoId,
+    nome: m.nome,
+    telefone: m.telefone || '',
+    morada: '',
+    obs: `Criado a partir de um ticket (${m.assunto || 'Contacto Geral'}).`,
+    usuario_id: null,
+  };
+  const { error } = await sb.from('clientes').insert(novoCliente);
+  if (error) { mostrarToast('Erro ao criar cliente: ' + error.message, 'error'); return; }
+  dados.clientes.push(novoCliente);
+
+  const { error: err2 } = await sb.from('contactos').update({ cliente_id: novoId }).eq('id', id);
+  if (!err2) m.cliente_id = novoId;
+
+  mostrarToast(`${m.nome} passou a ser cliente!`, 'success');
   fecharModal('modal-mensagem');
+  renderClientes();
   renderMensagens();
-  mostrarToast('Resposta guardada com sucesso!', 'success');
 }
 
 /* ── 11. Relatórios ───────────────────────────────────────── */
@@ -2245,7 +2319,62 @@ function renderConfiguracao() {
       </tr>`;
   }).join('');
 
+  renderConfiguracaoClientes();
   safeCreateIcons();
+}
+
+// Contas com papel "Cliente" — geridas à parte da hierarquia de cargos da
+// equipa. Pedido: a Configuração passa a incluir os clientes.
+function renderConfiguracaoClientes() {
+  const tbody = document.getElementById('tabela-configuracao-clientes');
+  const empty = document.getElementById('configuracao-clientes-empty');
+  if (!tbody || !empty) return;
+
+  const contasClientes = dados.usuarios.filter(u => u.papel === 'Cliente');
+
+  if (!contasClientes.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    safeCreateIcons();
+    return;
+  }
+
+  empty.style.display = 'none';
+  tbody.innerHTML = contasClientes.map(u => {
+    const ficha = dados.clientes.find(c => c.usuario_id === u.id);
+    return `
+      <tr>
+        <td>${u.nome}</td>
+        <td>${u.email || '—'}</td>
+        <td>${u.telefone || '—'}</td>
+        <td>${ficha ? '<span class="mensagem-badge-resp">Tem ficha</span>' : '<span class="mensagem-badge-novo">Sem ficha</span>'}</td>
+        <td>
+          ${ficha
+            ? `<button class="btn-sm btn-secondary" type="button" onclick="abrirModalCliente('${ficha.id}')">Ver ficha</button>`
+            : `<button class="btn-sm btn-primary" type="button" onclick="criarFichaParaConta('${u.id}')">Criar ficha</button>`}
+        </td>
+      </tr>`;
+  }).join('');
+
+  safeCreateIcons();
+}
+
+// Cria a ficha de Cliente (tabela "clientes") a partir de uma conta já
+// registada com papel "Cliente" que ainda não tem ficha associada.
+async function criarFichaParaConta(usuarioId) {
+  if (!usuarioEhGestorPlus()) { mostrarToast('Acesso negado.', 'error'); return; }
+  const u = dados.usuarios.find(u => u.id === usuarioId);
+  if (!u) return;
+
+  const novoId = gerarId();
+  const novoCliente = { id: novoId, nome: u.nome, telefone: u.telefone || '', morada: '', obs: '', usuario_id: u.id };
+  const { error } = await sb.from('clientes').insert(novoCliente);
+  if (error) { mostrarToast('Erro ao criar ficha: ' + error.message, 'error'); return; }
+
+  dados.clientes.push(novoCliente);
+  mostrarToast(`Ficha de cliente criada para ${u.nome}.`, 'success');
+  renderConfiguracaoClientes();
+  renderClientes();
 }
 
 async function alterarPapelUsuario(id, novoPapel) {
@@ -2399,9 +2528,16 @@ async function enviarContacto() {
   if (error) { mostrarToast('Erro ao enviar mensagem: ' + error.message, 'error'); return; }
 
   dados.mensagens.unshift({
-    ...obj, resposta: null, respondido: false, lido: false, created_at: new Date().toISOString(),
+    ...obj, resposta: null, respondido: false, lido: false, cliente_id: null, created_at: new Date().toISOString(),
   });
   atualizarBadgeMensagens();
+
+  // A própria mensagem inicial já entra no fio de conversa do ticket.
+  const primeiraMsg = { id: gerarId(), contacto_id: newId, autor_nome: nome, autor_tipo: 'visitante', mensagem };
+  await sb.from('contactos_chat').insert(primeiraMsg);
+  dados.contactos_chat.push({ ...primeiraMsg, created_at: new Date().toISOString() });
+
+  localStorage.setItem('borg_ticket_id', newId);
 
   document.getElementById('contacto-nome').value     = '';
   document.getElementById('contacto-email').value    = '';
@@ -2409,6 +2545,54 @@ async function enviarContacto() {
   document.getElementById('contacto-mensagem').value = '';
 
   mostrarToast('Mensagem enviada com sucesso! Entraremos em contacto brevemente.', 'success');
+  renderTicketPublico();
+}
+
+// Mostra o fio de conversa do ticket guardado neste dispositivo (se existir).
+function renderTicketPublico() {
+  const ticketId = localStorage.getItem('borg_ticket_id');
+  const formWrap   = document.getElementById('contactoFormWrap');
+  const ticketWrap = document.getElementById('contactoTicketWrap');
+  if (!formWrap || !ticketWrap) return;
+
+  const ticket = ticketId ? dados.mensagens.find(m => m.id === ticketId) : null;
+  if (!ticket) {
+    localStorage.removeItem('borg_ticket_id');
+    formWrap.style.display = 'flex';
+    ticketWrap.style.display = 'none';
+    return;
+  }
+
+  formWrap.style.display = 'none';
+  ticketWrap.style.display = 'flex';
+
+  const msgs = dados.contactos_chat.filter(c => c.contacto_id === ticketId);
+  document.getElementById('contactoTicketMsgs').innerHTML = renderMensagensThreadPublico(msgs);
+  safeCreateIcons();
+}
+
+async function enviarMensagemTicketPublico() {
+  const ticketId = localStorage.getItem('borg_ticket_id');
+  const input = document.getElementById('contactoTicketInput');
+  const texto = (input?.value || '').trim();
+  if (!ticketId || !texto) return;
+
+  const ticket = dados.mensagens.find(m => m.id === ticketId);
+  const obj = { id: gerarId(), contacto_id: ticketId, autor_nome: ticket?.nome || 'Cliente', autor_tipo: 'visitante', mensagem: texto };
+
+  const { error } = await sb.from('contactos_chat').insert(obj);
+  if (error) { mostrarToast('Erro ao enviar mensagem.', 'error'); return; }
+
+  dados.contactos_chat.push({ ...obj, created_at: new Date().toISOString() });
+  input.value = '';
+  renderTicketPublico();
+}
+
+function reiniciarTicketPublico() {
+  const ok = confirm('Começar um novo pedido? A conversa atual deixa de aparecer aqui (mas continua guardada nos nossos registos).');
+  if (!ok) return;
+  localStorage.removeItem('borg_ticket_id');
+  renderTicketPublico();
 }
 
 // Abre o login a partir do site público (botão "Entrar")
@@ -3241,6 +3425,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   atualizarStatsPublicas();
   atualizarBadgeMensagens();
   renderPublicAvaliacoes();
+  renderTicketPublico();
 
   // Popula o select de funcionárias no formulário público de avaliação.
   // Usa a view pública "funcionarias_publicas" (só id + nome) — funciona
