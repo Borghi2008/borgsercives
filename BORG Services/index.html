@@ -352,38 +352,52 @@
             </div>
           </div>
           <div class="pub-contact-form-card">
-            <h3>Enviar Mensagem</h3>
-            <div class="form-group">
-              <label>Nome *</label>
-              <input type="text" id="contacto-nome" placeholder="O seu nome completo" />
-            </div>
-            <div class="form-row">
+            <div id="contactoFormWrap">
+              <h3>Enviar Mensagem</h3>
               <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="contacto-email" placeholder="seu@email.com" />
+                <label>Nome *</label>
+                <input type="text" id="contacto-nome" placeholder="O seu nome completo" />
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Email</label>
+                  <input type="email" id="contacto-email" placeholder="seu@email.com" />
+                </div>
+                <div class="form-group">
+                  <label>Telefone</label>
+                  <input type="tel" id="contacto-telefone" placeholder="9XX XXX XXX" />
+                </div>
               </div>
               <div class="form-group">
-                <label>Telefone</label>
-                <input type="tel" id="contacto-telefone" placeholder="9XX XXX XXX" />
+                <label>Assunto</label>
+                <select id="contacto-assunto">
+                  <option value="Orçamento">Solicitar Orçamento</option>
+                  <option value="Informação">Pedido de Informação</option>
+                  <option value="Agendamento">Agendar Serviço</option>
+                  <option value="Reclamação">Reclamação</option>
+                  <option value="Outro">Outro</option>
+                </select>
               </div>
+              <div class="form-group">
+                <label>Mensagem *</label>
+                <textarea id="contacto-mensagem" rows="4" placeholder="Descreva o que precisa..."></textarea>
+              </div>
+              <button class="btn-primary btn-block" onclick="enviarContacto()">
+                <i data-lucide="send"></i> Enviar Mensagem
+              </button>
             </div>
-            <div class="form-group">
-              <label>Assunto</label>
-              <select id="contacto-assunto">
-                <option value="Orçamento">Solicitar Orçamento</option>
-                <option value="Informação">Pedido de Informação</option>
-                <option value="Agendamento">Agendar Serviço</option>
-                <option value="Reclamação">Reclamação</option>
-                <option value="Outro">Outro</option>
-              </select>
+
+            <div id="contactoTicketWrap" style="display:none;">
+              <h3>A sua conversa</h3>
+              <p class="ticket-hint">A nossa equipa responde aqui mesmo — pode voltar a esta página a qualquer altura neste dispositivo para ver a resposta e continuar a conversa.</p>
+              <div class="av-chat-msgs" id="contactoTicketMsgs" style="max-height:260px;"></div>
+              <div class="av-chat-input-row">
+                <input type="text" id="contactoTicketInput" placeholder="Escreva uma mensagem..."
+                  onkeydown="if(event.key==='Enter'){enviarMensagemTicketPublico()}" />
+                <button class="btn-icon" onclick="enviarMensagemTicketPublico()" title="Enviar"><i data-lucide="send"></i></button>
+              </div>
+              <button type="button" class="ticket-novo-btn" onclick="reiniciarTicketPublico()">Fazer um novo pedido</button>
             </div>
-            <div class="form-group">
-              <label>Mensagem *</label>
-              <textarea id="contacto-mensagem" rows="4" placeholder="Descreva o que precisa..."></textarea>
-            </div>
-            <button class="btn-primary btn-block" onclick="enviarContacto()">
-              <i data-lucide="send"></i> Enviar Mensagem
-            </button>
           </div>
         </div>
       </div>
@@ -827,6 +841,30 @@
           </table>
           <div id="configuracao-empty" class="empty-state" style="display:none;"></div>
         </div>
+
+        <div class="table-card" style="margin-top:24px;">
+          <div class="table-card-header">
+            <h2>Clientes</h2>
+            <p class="field-note">Contas de clientes registadas no site — geridas à parte da equipa, sem acesso ao painel.</p>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Email</th>
+                <th>Telefone</th>
+                <th>Ficha de cliente</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-configuracao-clientes"></tbody>
+          </table>
+          <div id="configuracao-clientes-empty" class="empty-state" style="display:none;">
+            <i data-lucide="user-round"></i>
+            <h3>Nenhum cliente registado</h3>
+            <p>Contas de clientes que se registarem no site aparecem aqui.</p>
+          </div>
+        </div>
       </main>
 
     </div><!-- fim main-wrapper -->
@@ -1165,29 +1203,34 @@
     </div>
   </div>
 
-  <!-- Modal: Ver/Responder Mensagem -->
+  <!-- Modal: Ver/Responder Mensagem (Ticket) -->
   <div class="modal-backdrop" id="modal-mensagem">
     <div class="modal">
       <div class="modal-header">
-        <h3>Mensagem do Cliente</h3>
+        <h3>Ticket</h3>
         <button class="modal-close" onclick="fecharModal('modal-mensagem')"><i data-lucide="x"></i></button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="mensagem-id" />
         <div class="mensagem-detalhe" id="mensagem-detalhe"></div>
         <div class="form-group" style="margin-top:16px;">
-          <label>Resposta</label>
-          <textarea id="mensagem-resposta" rows="4" placeholder="Escreva a sua resposta..."></textarea>
+          <label>Conversa</label>
+          <div class="av-chat-msgs" id="ticketChatMsgs" style="max-height:220px;"></div>
+          <div class="av-chat-input-row">
+            <input type="text" id="ticketChatInput" placeholder="Escreva uma resposta..."
+              onkeydown="if(event.key==='Enter'){enviarRespostaTicket()}" />
+            <button class="btn-icon" onclick="enviarRespostaTicket()" title="Enviar"><i data-lucide="send"></i></button>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
         <button class="btn-danger" id="btn-eliminar-mensagem" style="display:none;margin-right:auto;" onclick="confirmarEliminar('mensagem', document.getElementById('mensagem-id').value)">
           <i data-lucide="trash-2"></i> Eliminar
         </button>
-        <button class="btn-secondary" onclick="fecharModal('modal-mensagem')">Fechar</button>
-        <button class="btn-primary" onclick="responderMensagem()">
-          <i data-lucide="send"></i> Enviar Resposta
+        <button class="btn-secondary" id="btn-converter-cliente" onclick="converterTicketEmCliente()">
+          <i data-lucide="user-plus"></i> Converter em Cliente
         </button>
+        <button class="btn-secondary" onclick="fecharModal('modal-mensagem')">Fechar</button>
       </div>
     </div>
   </div>
