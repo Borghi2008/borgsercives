@@ -166,6 +166,16 @@ function gerarId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
+// Compara ids de forma tolerante a tipo. Os ids que viajam por atributos
+// onclick ou inputs escondidos chegam sempre como string — mas conforme
+// a origem da linha na BD, o valor guardado pode vir como number. Usar
+// "===" nesses casos falha em silêncio (o find() não encontra nada e a
+// função sai sem erro nenhum, sem abrir modal nenhum). Usa-se isto em
+// vez de "===" sempre que um dos lados possa ter chegado por essa via.
+function mesmoId(a, b) {
+  return a != null && b != null && String(a) === String(b);
+}
+
 const CORES = [
   '#3B82F6','#10B981','#F59E0B','#EF4444',
   '#8B5CF6','#06B6D4','#EC4899','#F97316',
@@ -1598,7 +1608,7 @@ async function enviarMensagemInterna() {
 }
 
 async function abrirModalMensagem(id) {
-  const m = dados.mensagens.find(m => m.id === id);
+  const m = dados.mensagens.find(m => mesmoId(m.id, id));
   if (!m) return;
 
   document.getElementById('mensagem-id').value = id;
@@ -1631,12 +1641,12 @@ async function abrirModalMensagem(id) {
 }
 
 function renderChatTicket(id) {
-  let msgs = (dados.contactos_chat || []).filter(c => c.contacto_id === id);
+  let msgs = (dados.contactos_chat || []).filter(c => mesmoId(c.contacto_id, id));
 
   // Tickets criados antes desta atualização não têm a 1ª mensagem em
   // contactos_chat — mostra a mensagem original guardada em "contactos".
   if (!msgs.length) {
-    const m = dados.mensagens.find(m => m.id === id);
+    const m = dados.mensagens.find(m => mesmoId(m.id, id));
     if (m?.mensagem) {
       msgs = [{ autor_nome: m.nome, autor_tipo: 'visitante', mensagem: m.mensagem, created_at: m.created_at }];
     }
@@ -1679,7 +1689,7 @@ async function enviarRespostaTicket() {
   input.value = '';
   renderChatTicket(id);
 
-  const m = dados.mensagens.find(m => m.id === id);
+  const m = dados.mensagens.find(m => mesmoId(m.id, id));
   if (m && !m.respondido) {
     await sb.from('contactos').update({ respondido: true, lido: true }).eq('id', id);
     m.respondido = true; m.lido = true;
@@ -1691,7 +1701,7 @@ async function enviarRespostaTicket() {
 // era cliente passa a sê-lo (tipicamente depois de já ter tido um serviço).
 async function converterTicketEmCliente() {
   const id = document.getElementById('mensagem-id').value;
-  const m  = dados.mensagens.find(m => m.id === id);
+  const m  = dados.mensagens.find(m => mesmoId(m.id, id));
   if (!m) return;
 
   const ok = confirm(`Criar um registo de Cliente para "${m.nome}"?`);
@@ -1862,7 +1872,7 @@ async function executarEliminar() {
   } else if (tipo === 'mensagem') {
     const { error } = await sb.from('contactos').delete().eq('id', id);
     if (error) { mostrarToast('Erro ao eliminar mensagem.', 'error'); return; }
-    dados.mensagens = dados.mensagens.filter(m => m.id !== id);
+    dados.mensagens = dados.mensagens.filter(m => !mesmoId(m.id, id));
     fecharModal('modal-mensagem');
     renderMensagens();
     mostrarToast('Mensagem eliminada.', 'success');
@@ -2301,6 +2311,9 @@ function renderConfiguracao() {
   tbody.innerHTML = usuariosEquipa.map(u => {
     const allowedRoles       = PAPEL_HIERARQUIA.filter(opt => papelNivel(opt) > currentNivel);
     const currentRoleAllowed = allowedRoles.includes(u.papel);
+    // Só pode retirar o acesso de quem está abaixo de si na hierarquia (mesma
+    // regra usada em alterarPapelUsuario) — nunca de alguém ao seu nível ou acima.
+    const podeRemoverCargo   = papelNivel(u.papel) > currentNivel;
     const options            = [];
     // Só mostra a opção do cargo atual (mesmo que "acima" do que podes atribuir)
     // se a conta REALMENTE já tiver um cargo. Contas novas sem cargo (papel
@@ -2311,6 +2324,11 @@ function renderConfiguracao() {
     options.push(...allowedRoles.map(opt =>
       `<option value="${opt}" ${u.papel === opt ? 'selected' : ''}>${opt}</option>`
     ));
+    // "Demitir" — retira todo o acesso, deixando a conta tal como uma conta
+    // nova ainda sem cargo atribuído (sem qualquer permissão no painel).
+    if (podeRemoverCargo) {
+      options.push(`<option value="" ${!u.papel ? 'selected' : ''}>Sem cargo (remover acesso)</option>`);
+    }
 
     return `
       <tr>
@@ -2385,17 +2403,26 @@ async function criarFichaParaConta(usuarioId) {
   renderClientes();
 }
 
-async function alterarPapelUsuario(id, novoPapel) {
+async function alterarPapelUsuario(id, novoPapelBruto) {
   if (!usuarioEhGestorPlus()) { mostrarToast('Acesso negado.', 'error'); return; }
 
   const usuario = dados.usuarios.find(u => u.id === id);
   if (!usuario) { mostrarToast('Usuário não encontrado.', 'error'); return; }
+
+  // O <select> devolve "" na opção "Sem cargo" — normaliza para null, o
+  // mesmo estado de uma conta nova ainda sem cargo atribuído ("demitir").
+  const novoPapel = novoPapelBruto || null;
 
   const currentNivel = papelNivel(authUsuario.papel);
   const targetNivel  = papelNivel(novoPapel);
   if (targetNivel <= currentNivel) {
     mostrarToast('Não pode atribuir um cargo igual ou superior ao seu.', 'error');
     return;
+  }
+
+  if (!novoPapel && usuario.papel) {
+    const ok = confirm(`Retirar o cargo de ${usuario.nome}? A conta fica sem qualquer acesso ao painel, tal como uma conta nova por atribuir.`);
+    if (!ok) return;
   }
 
   const { error } = await sb.from('perfis').update({ papel: novoPapel }).eq('id', id);
@@ -2407,7 +2434,7 @@ async function alterarPapelUsuario(id, novoPapel) {
     atualizarUsuarioLogado();
   }
 
-  mostrarToast(`Cargo de ${usuario.nome} atualizado para ${novoPapel}.`, 'success');
+  mostrarToast(novoPapel ? `Cargo de ${usuario.nome} atualizado para ${novoPapel}.` : `Acesso de ${usuario.nome} removido.`, 'success');
   atualizarInterface();
   renderConfiguracao();
 }
