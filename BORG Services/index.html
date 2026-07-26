@@ -845,7 +845,7 @@
         <div class="table-card" style="margin-top:24px;">
           <div class="table-card-header">
             <h2>Clientes</h2>
-            <p class="field-note">Contas de clientes registradas no site — geridas à parte da equipa, sem acesso ao painel.</p>
+            <p class="field-note">Contas de clientes registadas no site — geridas à parte da equipa, sem acesso ao painel.</p>
           </div>
           <table class="data-table">
             <thead>
@@ -1081,7 +1081,17 @@
           <label>Nome *</label>
           <input type="text" id="funcionaria-nome" placeholder="Nome completo" required />
         </div>
-        <input type="hidden" id="funcionaria-nivel" value="1" />
+        <div class="form-group">
+          <label>Cargo *</label>
+          <select id="funcionaria-nivel" required>
+            <option value="5">Administrador</option>
+            <option value="4">Gestor</option>
+            <option value="3">Supervisor</option>
+            <option value="2">Assistente</option>
+            <option value="1">Auxiliar</option>
+          </select>
+          <span class="field-note">Ao ligar uma conta, o cargo é sugerido automaticamente — mas pode sempre ser alterado aqui à mão (ex: em caso de demissão).</span>
+        </div>
         <div class="form-group">
           <label>Contacto</label>
           <input type="tel" id="funcionaria-contacto" placeholder="9XX XXX XXX" />
@@ -1091,7 +1101,7 @@
           <select id="funcionaria-usuario" onchange="autoPreencherFuncionariaPorUsuario()">
             <option value="">Sem conta vinculada</option>
           </select>
-          <span class="field-note">Liga esta funcionária/o à conta com que inicia sessão — o cargo é definido em "Configuração" e o nome preenche-se automaticamente.</span>
+          <span class="field-note">Liga esta funcionária/o à conta com que inicia sessão — o nome e o cargo preenchem-se automaticamente.</span>
         </div>
       </div>
       <div class="modal-footer">
