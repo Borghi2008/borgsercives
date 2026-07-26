@@ -2302,7 +2302,10 @@ function renderConfiguracao() {
     const allowedRoles       = PAPEL_HIERARQUIA.filter(opt => papelNivel(opt) > currentNivel);
     const currentRoleAllowed = allowedRoles.includes(u.papel);
     const options            = [];
-    if (!currentRoleAllowed) {
+    // Só mostra a opção do cargo atual (mesmo que "acima" do que podes atribuir)
+    // se a conta REALMENTE já tiver um cargo. Contas novas sem cargo (papel
+    // vazio/null) mostram logo a lista normal, sem a opção literal "null".
+    if (u.papel && !currentRoleAllowed) {
       options.push(`<option value="${u.papel}" selected disabled>${u.papel}</option>`);
     }
     options.push(...allowedRoles.map(opt =>
