@@ -176,6 +176,21 @@ function mesmoId(a, b) {
   return a != null && b != null && String(a) === String(b);
 }
 
+// Validação básica de email e telefone — usada em todos os formulários
+// públicos (contacto, avaliações, registo, perfil) para impedir o envio
+// de dados de contacto que a equipa depois não consegue usar para responder.
+function validarEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((email || '').trim());
+}
+
+function validarTelefone(telefone) {
+  const limpo = (telefone || '').replace(/[\s().-]/g, '');
+  // Aceita números PT/UK com ou sem indicativo (+351, +44, 00...) e
+  // formatos genéricos de 9 a 15 dígitos — barra "123" ou "asdasd" sem
+  // recusar números reais de clientes.
+  return /^\+?\d{9,15}$/.test(limpo);
+}
+
 const CORES = [
   '#3B82F6','#10B981','#F59E0B','#EF4444',
   '#8B5CF6','#06B6D4','#EC4899','#F97316',
@@ -1964,6 +1979,7 @@ async function registrarUsuario() {
   const confirmar = document.getElementById('reg-confirmar-senha').value;
 
   if (!username)           { mostrarToast('O username é obrigatório.', 'error'); return; }
+  if (!validarTelefone(telefone)) { mostrarToast('Introduza um número de telefone válido.', 'error'); return; }
   if (senha.length < 6)    { mostrarToast('A senha deve ter pelo menos 6 caracteres.', 'error'); return; }
   if (senha !== confirmar) { mostrarToast('As senhas não coincidem.', 'error'); return; }
 
@@ -2245,6 +2261,8 @@ async function salvarPerfil() {
     mostrarToast('Preencha todos os campos obrigatórios.', 'error');
     return;
   }
+  if (!validarEmail(email)) { mostrarToast('Introduza um email válido.', 'error'); return; }
+  if (!validarTelefone(telefone)) { mostrarToast('Introduza um número de telefone válido.', 'error'); return; }
 
   // Mudar o email de login exige confirmação pelo Supabase Auth.
   if (email !== authUsuario.email) {
@@ -2555,6 +2573,9 @@ async function enviarContacto() {
   const mensagem = document.getElementById('contacto-mensagem').value.trim();
 
   if (!nome || !mensagem) { mostrarToast('Preencha o nome e a mensagem.', 'error'); return; }
+  if (!email && !telefone) { mostrarToast('Indique um email ou telefone para podermos responder-lhe.', 'error'); return; }
+  if (email && !validarEmail(email)) { mostrarToast('Introduza um email válido.', 'error'); return; }
+  if (telefone && !validarTelefone(telefone)) { mostrarToast('Introduza um número de telefone válido.', 'error'); return; }
 
   const newId = gerarId();
   const obj   = { id: newId, nome, email, telefone, assunto, mensagem };
@@ -3136,6 +3157,7 @@ async function enviarAvaliacaoPublica() {
   const estrelas    = avaliacaoEstrelasSelecionadas;
 
   if (!nome) { mostrarToast('Introduza o seu nome.', 'error'); return; }
+  if (email && !validarEmail(email)) { mostrarToast('Introduza um email válido.', 'error'); return; }
   if (!estrelas) { mostrarToast('Seleccione uma classificação de estrelas.', 'error'); return; }
 
   // Fotos: converte para base64 (máx 3 fotos, 500KB cada) e guarda como JSON.
@@ -3510,7 +3532,7 @@ function initScrollAnimations() {
         el.dataset.originalText = original;
         el.textContent = '';
         let i = 0;
-        const speed = Math.max(13.5, Math.min(28.5, Math.floor(600 / original.length)));
+        const speed = Math.max(18, Math.min(38, Math.floor(800 / original.length)));
         const interval = setInterval(() => {
           el.textContent = original.slice(0, i + 1);
           i++;
