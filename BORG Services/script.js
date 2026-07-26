@@ -40,6 +40,7 @@ let dados = {
   site_textos:       {},
   avaliacoes:        [],
   avaliacoes_chat:   [],
+  contactos_chat:     [],
   cliente_servicos:   [],  // Área do Cliente: só os serviços do cliente autenticado
   cliente_mensagens:  [],  // Área do Cliente: chat com a empresa
   funcionarias_pub:   [],  // Área do Cliente: cache de funcionarias_publicas (id+nome, p/ mostrar "quem vai")
@@ -408,8 +409,11 @@ function abrirModalCliente(id) {
 
   const selUsuario = document.getElementById('cliente-usuario');
   if (selUsuario) {
-    const jaLigados  = new Set(dados.clientes.filter(c => c.usuario_id && c.id !== id).map(c => c.usuario_id));
-    const candidatos = dados.usuarios.filter(u => u.papel === 'Cliente' && !jaLigados.has(u.id));
+    const jaLigadas = new Set([
+      ...dados.clientes.filter(c => c.usuario_id && c.id !== id).map(c => c.usuario_id),
+      ...dados.funcionarias.filter(f => f.usuario_id).map(f => f.usuario_id),
+    ]);
+    const candidatos = dados.usuarios.filter(u => !jaLigadas.has(u.id));
     selUsuario.innerHTML = '<option value="">Sem conta vinculada</option>' +
       candidatos.map(u => `<option value="${u.id}">${u.nome}${u.email ? ' — ' + u.email : ''}</option>`).join('');
   }
@@ -580,10 +584,13 @@ function abrirModalFuncionaria(id) {
 
   const selUsuario = document.getElementById('funcionaria-usuario');
   if (selUsuario) {
-    const jaLigadas  = new Set(dados.funcionarias.filter(f => f.usuario_id && f.id !== id).map(f => f.usuario_id));
-    const candidatos = dados.usuarios.filter(u => u.papel !== 'Cliente' && !jaLigadas.has(u.id));
+    const jaLigadas = new Set([
+      ...dados.funcionarias.filter(f => f.usuario_id && f.id !== id).map(f => f.usuario_id),
+      ...dados.clientes.filter(c => c.usuario_id).map(c => c.usuario_id),
+    ]);
+    const candidatos = dados.usuarios.filter(u => !jaLigadas.has(u.id));
     selUsuario.innerHTML = '<option value="">Sem conta vinculada</option>' +
-      candidatos.map(u => `<option value="${u.id}">${u.nome} (${normalizarPapel(u.papel)})</option>`).join('');
+      candidatos.map(u => `<option value="${u.id}">${u.nome}${u.papel ? ' (' + normalizarPapel(u.papel) + ')' : ''}</option>`).join('');
   }
 
   const deleteBtn = document.getElementById('btn-eliminar-funcionaria');
@@ -1605,15 +1612,17 @@ async function abrirModalMensagem(id) {
     <div class="md-meta">${m.assunto || 'Contacto Geral'} · ${data}${m.email ? ` · ${m.email}` : ''}${m.telefone ? ` · ${m.telefone}` : ''}</div>
     ${m.cliente_id ? '<span class="mensagem-badge-resp">Já é cliente</span>' : ''}`;
 
-  renderChatTicket(id);
-
   const delBtnMsg = document.getElementById('btn-eliminar-mensagem');
   if (delBtnMsg) delBtnMsg.style.display = usuarioEhGestorPlus() ? 'inline-flex' : 'none';
 
   const btnConverter = document.getElementById('btn-converter-cliente');
   if (btnConverter) btnConverter.style.display = m.cliente_id ? 'none' : 'inline-flex';
 
+  // O modal tem de abrir mesmo que o fio de conversa (tabela nova,
+  // pode ainda não existir se a migração SQL não tiver sido corrida) falhe.
   abrirModal('modal-mensagem');
+  try { renderChatTicket(id); }
+  catch (e) { console.error('Erro ao carregar conversa do ticket:', e); }
 
   if (!m.lido) {
     const { error } = await sb.from('contactos').update({ lido: true }).eq('id', id);
@@ -1622,7 +1631,7 @@ async function abrirModalMensagem(id) {
 }
 
 function renderChatTicket(id) {
-  let msgs = dados.contactos_chat.filter(c => c.contacto_id === id);
+  let msgs = (dados.contactos_chat || []).filter(c => c.contacto_id === id);
 
   // Tickets criados antes desta atualização não têm a 1ª mensagem em
   // contactos_chat — mostra a mensagem original guardada em "contactos".
@@ -2323,14 +2332,14 @@ function renderConfiguracao() {
   safeCreateIcons();
 }
 
-// Contas com papel "Cliente" — geridas à parte da hierarquia de cargos da
-// equipa. Pedido: a Configuração passa a incluir os clientes.
+// Contas com ficha de Cliente associada — é isto que realmente define
+// "conta de cliente" no teu sistema (o registo nunca atribui um papel).
 function renderConfiguracaoClientes() {
   const tbody = document.getElementById('tabela-configuracao-clientes');
   const empty = document.getElementById('configuracao-clientes-empty');
   if (!tbody || !empty) return;
 
-  const contasClientes = dados.usuarios.filter(u => u.papel === 'Cliente');
+  const contasClientes = dados.usuarios.filter(u => dados.clientes.some(c => c.usuario_id === u.id));
 
   if (!contasClientes.length) {
     tbody.innerHTML = '';
@@ -2347,12 +2356,8 @@ function renderConfiguracaoClientes() {
         <td>${u.nome}</td>
         <td>${u.email || '—'}</td>
         <td>${u.telefone || '—'}</td>
-        <td>${ficha ? '<span class="mensagem-badge-resp">Tem ficha</span>' : '<span class="mensagem-badge-novo">Sem ficha</span>'}</td>
-        <td>
-          ${ficha
-            ? `<button class="btn-sm btn-secondary" type="button" onclick="abrirModalCliente('${ficha.id}')">Ver ficha</button>`
-            : `<button class="btn-sm btn-primary" type="button" onclick="criarFichaParaConta('${u.id}')">Criar ficha</button>`}
-        </td>
+        <td><span class="mensagem-badge-resp">Tem ficha</span></td>
+        <td><button class="btn-sm btn-secondary" type="button" onclick="abrirModalCliente('${ficha.id}')">Ver ficha</button></td>
       </tr>`;
   }).join('');
 
