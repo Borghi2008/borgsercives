@@ -3510,7 +3510,7 @@ function initScrollAnimations() {
         el.dataset.originalText = original;
         el.textContent = '';
         let i = 0;
-        const speed = Math.max(18, Math.min(38, Math.floor(800 / original.length)));
+        const speed = Math.max(13.5, Math.min(28.5, Math.floor(600 / original.length)));
         const interval = setInterval(() => {
           el.textContent = original.slice(0, i + 1);
           i++;
