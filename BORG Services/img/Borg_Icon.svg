@@ -1,0 +1,30 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2F7FF0"/>
+      <stop offset="1" stop-color="#1857B8"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- fundo -->
+  <rect x="0" y="0" width="512" height="512" rx="114" ry="114" fill="url(#bg)"/>
+  <rect x="0" y="0" width="512" height="512" rx="114" ry="114" fill="url(#sheen)"/>
+
+  <!-- monograma B -->
+  <g fill="#FFFFFF">
+    <rect x="141" y="111" width="100" height="143" rx="8"/>
+    <ellipse cx="241" cy="182.5" rx="130" ry="71.5"/>
+    <rect x="141" y="254" width="100" height="147" rx="8"/>
+    <ellipse cx="241" cy="327.5" rx="140" ry="73.5"/>
+  </g>
+
+  <!-- contra-formas (cortadas com o mesmo gradiente do fundo) -->
+  <g fill="url(#bg)">
+    <ellipse cx="284" cy="182.5" rx="68" ry="50"/>
+    <ellipse cx="288" cy="328" rx="76" ry="56"/>
+  </g>
+</svg>
