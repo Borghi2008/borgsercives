@@ -191,6 +191,17 @@ function validarTelefone(telefone) {
   return /^\+?\d{9,15}$/.test(limpo);
 }
 
+// Escapa texto vindo de utilizadores (nomes, mensagens, comentários, etc.)
+// antes de inserir em innerHTML — impede que alguém injete <script>/onerror
+// através de um campo de formulário e esse código corra no ecrã de outra
+// pessoa (XSS armazenado). Usar sempre que texto de um registo da BD entra
+// num template `innerHTML = ...`.
+function escapeHtml(valor) {
+  return String(valor ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
 const CORES = [
   '#3B82F6','#10B981','#F59E0B','#EF4444',
   '#8B5CF6','#06B6D4','#EC4899','#F97316',
@@ -357,7 +368,7 @@ function renderDashboard() {
       return `
         <div class="funcionaria-row">
           <div class="func-avatar-sm" style="background:${cor}">${iniciais(f.nome)}</div>
-          <span class="func-name-sm">${f.nome}</span>
+          <span class="func-name-sm">${escapeHtml(f.nome)}</span>
           <div class="func-bar-wrap">
             <div class="func-bar" style="width:${pct}%;background:${cor}"></div>
           </div>
@@ -383,8 +394,8 @@ function renderDashboard() {
         <div class="servico-hoje-item">
           <div class="servico-dot"></div>
           <div class="servico-info-sm">
-            <span class="s-cliente">${cliente?.nome || '—'}</span>
-            <span class="s-func">${func?.nome || '—'}</span>
+            <span class="s-cliente">${escapeHtml(cliente?.nome || '—')}</span>
+            <span class="s-func">${escapeHtml(func?.nome || '—')}</span>
           </div>
           <span class="servico-horario">${s.inicio}–${s.fim}</span>
         </div>`;
@@ -413,11 +424,11 @@ function renderClientes() {
   } else {
     empty.style.display = 'none';
     tbody.innerHTML = lista.map(c => `
-      <tr class="clickable-row" onclick="abrirModalCliente('${c.id}')">
-        <td><strong>${c.nome}</strong> ${c.usuario_id ? '<span class="badge-conta" title="Tem conta no Portal do Cliente">Portal</span>' : ''}</td>
-        <td>${c.telefone ? `<a href="tel:${c.telefone}" style="color:var(--color-accent-dark)">${c.telefone}</a>` : '—'}</td>
-        <td>${c.morada || '—'}</td>
-        <td><span class="obs-text">${c.obs || '—'}</span></td>
+      <tr class="clickable-row" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}" onclick="abrirModalCliente('${c.id}')">
+        <td data-label="Nome"><strong>${escapeHtml(c.nome)}</strong> ${c.usuario_id ? '<span class="badge-conta" title="Tem conta no Portal do Cliente">Portal</span>' : ''}</td>
+        <td data-label="Telefone">${c.telefone ? `<a href="tel:${escapeHtml(c.telefone)}" style="color:var(--color-accent-dark)">${escapeHtml(c.telefone)}</a>` : '—'}</td>
+        <td data-label="Morada">${escapeHtml(c.morada || '—')}</td>
+        <td data-label="Observações"><span class="obs-text">${escapeHtml(c.obs || '—')}</span></td>
       </tr>`).join('');
   }
   safeCreateIcons();
@@ -440,7 +451,7 @@ function abrirModalCliente(id) {
     ]);
     const candidatos = dados.usuarios.filter(u => !jaLigadas.has(u.id));
     selUsuario.innerHTML = '<option value="">Sem conta vinculada</option>' +
-      candidatos.map(u => `<option value="${u.id}">${u.nome}${u.email ? ' — ' + u.email : ''}</option>`).join('');
+      candidatos.map(u => `<option value="${u.id}">${escapeHtml(u.nome)}${u.email ? ' — ' + u.email : ''}</option>`).join('');
   }
 
   let cliente = null;
@@ -503,8 +514,8 @@ function buscarContasParaLigar() {
   }
   cont.innerHTML = candidatos.map(c => `
     <button type="button" class="ligar-conta-item" onclick="selecionarContaParaLigar('${c.id}')">
-      <strong>${c.nome}</strong>
-      <span>${c.telefone || '—'} · ${c.email || '—'}</span>
+      <strong>${escapeHtml(c.nome)}</strong>
+      <span>${escapeHtml(c.telefone || '—')} · ${escapeHtml(c.email || '—')}</span>
     </button>`).join('');
 }
 
@@ -580,11 +591,11 @@ function renderFuncionarias() {
         .filter(s => s.funcionariaId === f.id)
         .reduce((acc, s) => acc + calcularDiferencaHoras(s.inicio, s.fim), 0);
       return `
-        <div class="func-card" onclick="abrirModalFuncionaria('${f.id}')">
+        <div class="func-card" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}" onclick="abrirModalFuncionaria('${f.id}')">
           <div class="func-card-avatar" style="background:${cor}">${iniciais(f.nome)}</div>
-          <div class="func-card-name">${f.nome}</div>
-          <div class="func-card-role">${f.cargo || 'Sem cargo'}</div>
-          <div class="func-card-contact">${f.contacto || 'Sem contacto'}</div>
+          <div class="func-card-name">${escapeHtml(f.nome)}</div>
+          <div class="func-card-role">${escapeHtml(f.cargo || 'Sem cargo')}</div>
+          <div class="func-card-contact">${escapeHtml(f.contacto || 'Sem contacto')}</div>
           <div class="func-card-stat">
             <i data-lucide="clock" style="width:13px;height:13px;vertical-align:middle;margin-right:4px"></i>
             ${formatarHoras(horas)} esta semana
@@ -615,7 +626,7 @@ function abrirModalFuncionaria(id) {
     ]);
     const candidatos = dados.usuarios.filter(u => !jaLigadas.has(u.id));
     selUsuario.innerHTML = '<option value="">Sem conta vinculada</option>' +
-      candidatos.map(u => `<option value="${u.id}">${u.nome}${u.papel ? ' (' + normalizarPapel(u.papel) + ')' : ''}</option>`).join('');
+      candidatos.map(u => `<option value="${u.id}">${escapeHtml(u.nome)}${u.papel ? ' (' + normalizarPapel(u.papel) + ')' : ''}</option>`).join('');
   }
 
   const deleteBtn = document.getElementById('btn-eliminar-funcionaria');
@@ -739,7 +750,7 @@ function renderAgenda() {
     nomeCell.className = 'agenda-func-name';
     nomeCell.innerHTML = `
       <div class="func-avatar-sm" style="background:${cor}">${iniciais(f.nome)}</div>
-      <span>${f.nome.split(' ')[0]}</span>`;
+      <span>${escapeHtml(f.nome.split(' ')[0])}</span>`;
     container.appendChild(nomeCell);
 
     const podeEditar = podeEditarAgendaDe(f.id);
@@ -764,7 +775,7 @@ function renderAgenda() {
         card.className = 'servico-card' + (podeEditar ? '' : ' sem-permissao');
         card.innerHTML = `
           <span class="sc-horas">${formatarHoras(horas)}</span>
-          <span class="sc-cliente">${cliente?.nome || '—'}</span>
+          <span class="sc-cliente">${escapeHtml(cliente?.nome || '—')}</span>
           <span class="sc-horario">
             <i data-lucide="clock"></i>${s.inicio}–${s.fim}
           </span>
@@ -984,9 +995,9 @@ function abrirModalServico(id, funcId, diaIdx) {
   const selFunc    = document.getElementById('servico-funcionaria');
 
   selCliente.innerHTML = '<option value="">Selecionar cliente...</option>' +
-    dados.clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+    dados.clientes.map(c => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('');
   selFunc.innerHTML = '<option value="">Selecionar funcionária...</option>' +
-    dados.funcionarias.map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
+    dados.funcionarias.map(f => `<option value="${f.id}">${escapeHtml(f.nome)}</option>`).join('');
 
   document.getElementById('servico-id').value = id || '';
   document.getElementById('horas-calculadas').style.display = 'none';
@@ -1164,12 +1175,12 @@ function renderProdutos() {
         </div>
         <div class="produto-card-app-img">
           ${p.imagem_url
-            ? `<img src="${p.imagem_url}" alt="${p.nome}" onerror="this.parentElement.textContent='📦'" />`
+            ? `<img src="${p.imagem_url}" alt="${escapeHtml(p.nome)}" onerror="this.parentElement.textContent='📦'" />`
             : '📦'}
         </div>
         <div class="produto-card-app-body">
-          <div class="produto-card-app-nome">${p.nome}</div>
-          <div class="produto-card-app-desc">${p.descricao || 'Sem descrição.'}</div>
+          <div class="produto-card-app-nome">${escapeHtml(p.nome)}</div>
+          <div class="produto-card-app-desc">${escapeHtml(p.descricao || 'Sem descrição.')}</div>
           ${(p.link_compra || '').split(',').map(l => l.trim()).filter(Boolean).map(l => `
             <a href="${l}" target="_blank" rel="noopener noreferrer" class="produto-card-app-link">
               <i data-lucide="external-link"></i> Ver na loja
@@ -1202,12 +1213,12 @@ function renderPublicProdutos() {
         <div class="pub-produto-card">
           <div class="pub-produto-img">
             ${p.imagem_url
-              ? `<img src="${p.imagem_url}" alt="${p.nome}" onerror="this.parentElement.textContent='📦'" />`
+              ? `<img src="${p.imagem_url}" alt="${escapeHtml(p.nome)}" onerror="this.parentElement.textContent='📦'" />`
               : '📦'}
           </div>
           <div class="pub-produto-body">
-            <div class="pub-produto-nome">${p.nome}</div>
-            <div class="pub-produto-desc">${p.descricao || ''}</div>
+            <div class="pub-produto-nome">${escapeHtml(p.nome)}</div>
+            <div class="pub-produto-desc">${escapeHtml(p.descricao || '')}</div>
             ${links.map(l => `
               <a href="${l}" target="_blank" rel="noopener noreferrer" class="pub-produto-link">
                 <i data-lucide="external-link"></i> Ver Produto
@@ -1458,18 +1469,18 @@ function renderMensagensClientes() {
       if (m.respondido) classes.push('respondida');
 
       return `
-        <div class="${classes.join(' ')}" onclick="abrirModalMensagem('${m.id}')">
+        <div class="${classes.join(' ')}" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}" onclick="abrirModalMensagem('${m.id}')">
           <div class="mensagem-card-header">
-            <span class="mensagem-nome">${m.nome}</span>
+            <span class="mensagem-nome">${escapeHtml(m.nome)}</span>
             ${!m.lido ? '<span class="mensagem-badge-novo">Novo</span>' : ''}
             ${m.respondido ? '<span class="mensagem-badge-resp">Respondido</span>' : ''}
             <span class="mensagem-data">${data}</span>
           </div>
-          <div class="mensagem-assunto">${m.assunto || 'Contacto Geral'}</div>
-          <div class="mensagem-preview">${m.mensagem}</div>
+          <div class="mensagem-assunto">${escapeHtml(m.assunto || 'Contacto Geral')}</div>
+          <div class="mensagem-preview">${escapeHtml(m.mensagem)}</div>
           <div class="mensagem-contacto">
-            ${m.email    ? `<span><i data-lucide="mail" style="width:12px;height:12px;vertical-align:middle"></i> ${m.email}</span>` : ''}
-            ${m.telefone ? `<span><i data-lucide="phone" style="width:12px;height:12px;vertical-align:middle"></i> ${m.telefone}</span>` : ''}
+            ${m.email    ? `<span><i data-lucide="mail" style="width:12px;height:12px;vertical-align:middle"></i> ${escapeHtml(m.email)}</span>` : ''}
+            ${m.telefone ? `<span><i data-lucide="phone" style="width:12px;height:12px;vertical-align:middle"></i> ${escapeHtml(m.telefone)}</span>` : ''}
           </div>
         </div>`;
     }).join('');
@@ -1527,7 +1538,7 @@ function renderChatEquipaLista() {
     const ativo    = chatInternoAlvoId === u.id;
     return `
       <button class="chat-equipa-item${ativo ? ' active' : ''}" onclick="abrirChatInterno('${u.id}')">
-        <span class="chat-equipa-nome">${u.nome}</span>
+        <span class="chat-equipa-nome">${escapeHtml(u.nome)}</span>
         <span class="chat-equipa-cargo">${normalizarPapel(u.papel)}</span>
         ${naoLidas ? `<span class="nav-badge">${naoLidas}</span>` : ''}
       </button>`;
@@ -1569,8 +1580,8 @@ function carregarMensagemInterna() {
       : '';
     return `
       <div class="chat-msg ${m.remetente === 'gestao' ? 'equipa' : 'cliente'}">
-        <div class="chat-msg-autor">${m.autor_nome}</div>
-        <div class="chat-msg-texto">${m.mensagem}</div>
+        <div class="chat-msg-autor">${escapeHtml(m.autor_nome)}</div>
+        <div class="chat-msg-texto">${escapeHtml(m.mensagem)}</div>
         <div class="chat-msg-hora">${hora}</div>
       </div>`;
   }).join('');
@@ -1633,8 +1644,8 @@ async function abrirModalMensagem(id) {
     : '';
 
   document.getElementById('mensagem-detalhe').innerHTML = `
-    <h4>${m.nome}</h4>
-    <div class="md-meta">${m.assunto || 'Contacto Geral'} · ${data}${m.email ? ` · ${m.email}` : ''}${m.telefone ? ` · ${m.telefone}` : ''}</div>
+    <h4>${escapeHtml(m.nome)}</h4>
+    <div class="md-meta">${escapeHtml(m.assunto || 'Contacto Geral')} · ${data}${m.email ? ` · ${escapeHtml(m.email)}` : ''}${m.telefone ? ` · ${escapeHtml(m.telefone)}` : ''}</div>
     ${m.cliente_id ? '<span class="mensagem-badge-resp">Já é cliente</span>' : ''}`;
 
   const delBtnMsg = document.getElementById('btn-eliminar-mensagem');
@@ -1680,8 +1691,8 @@ function renderChatTicket(id) {
     const isEquipa = m.autor_tipo === 'equipa';
     return `
       <div class="chat-msg ${isEquipa ? 'equipa' : 'cliente'}">
-        <div class="chat-msg-autor">${m.autor_nome}${isEquipa ? ' · Equipa BORG' : ''}</div>
-        <div class="chat-msg-texto">${m.mensagem}</div>
+        <div class="chat-msg-autor">${escapeHtml(m.autor_nome)}${isEquipa ? ' · Equipa BORG' : ''}</div>
+        <div class="chat-msg-texto">${escapeHtml(m.mensagem)}</div>
         <div class="chat-msg-hora">${hora}</div>
       </div>`;
   }).join('');
@@ -1760,7 +1771,7 @@ function renderRelatorios() {
       return `
         <div class="relatorio-row">
           <div class="func-avatar-sm" style="background:${cor};width:28px;height:28px;font-size:10px">${iniciais(f.nome)}</div>
-          <span class="rel-name">${f.nome}</span>
+          <span class="rel-name">${escapeHtml(f.nome)}</span>
           <span class="rel-value">${total} serviços · ${formatarHoras(horas)}</span>
         </div>`;
     }).join('');
@@ -1781,7 +1792,7 @@ function renderRelatorios() {
 
     relCli.innerHTML = comServicos.map(c => `
       <div class="relatorio-row">
-        <span class="rel-name">${c.nome}</span>
+        <span class="rel-name">${escapeHtml(c.nome)}</span>
         <span class="rel-value">${c.total} serviços · ${formatarHoras(c.horas)}</span>
       </div>`).join('');
   }
@@ -2226,7 +2237,7 @@ function carregarPerfilAtual() {
 
   const preview = document.getElementById('profilePhotoPreview');
   if (authUsuario.foto) {
-    preview.innerHTML = `<img src="${authUsuario.foto}" alt="Foto de perfil" />`;
+    preview.innerHTML = `<img src="${escapeHtml(authUsuario.foto)}" alt="Foto de perfil" />`;
     preview.classList.add('has-image');
     preview.dataset.photo = authUsuario.foto;
   } else {
@@ -2350,15 +2361,15 @@ function renderConfiguracao() {
 
     return `
       <tr>
-        <td>${u.nome}</td>
-        <td>${u.email}</td>
-        <td>${u.telefone || '—'}</td>
-        <td>
+        <td data-label="Nome">${escapeHtml(u.nome)}</td>
+        <td data-label="Email">${escapeHtml(u.email)}</td>
+        <td data-label="Telefone">${escapeHtml(u.telefone || '—')}</td>
+        <td data-label="Cargo">
           <select id="user-role-${u.id}">
             ${options.join('')}
           </select>
         </td>
-        <td>
+        <td data-label="Ação">
           <button class="btn-sm btn-primary" type="button"
             onclick="alterarPapelUsuario('${u.id}', document.getElementById('user-role-${u.id}').value)">
             Guardar
@@ -2392,11 +2403,11 @@ function renderConfiguracaoClientes() {
     const ficha = dados.clientes.find(c => c.usuario_id === u.id);
     return `
       <tr>
-        <td>${u.nome}</td>
-        <td>${u.email || '—'}</td>
-        <td>${u.telefone || '—'}</td>
-        <td><span class="mensagem-badge-resp">Tem ficha</span></td>
-        <td><button class="btn-sm btn-secondary" type="button" onclick="abrirModalCliente('${ficha.id}')">Ver ficha</button></td>
+        <td data-label="Nome">${escapeHtml(u.nome)}</td>
+        <td data-label="Email">${escapeHtml(u.email || '—')}</td>
+        <td data-label="Telefone">${escapeHtml(u.telefone || '—')}</td>
+        <td data-label="Ficha de cliente"><span class="mensagem-badge-resp">Tem ficha</span></td>
+        <td data-label="Ação"><button class="btn-sm btn-secondary" type="button" onclick="abrirModalCliente('${ficha.id}')">Ver ficha</button></td>
       </tr>`;
   }).join('');
 
@@ -2739,23 +2750,55 @@ async function carregarDadosCliente() {
 function renderClienteServicos() {
   const lista = document.getElementById('cliente-servicos-lista');
   const empty = document.getElementById('cliente-servicos-empty');
+  const destaque = document.getElementById('cliente-proximo-servico');
   if (!lista || !empty) return;
 
   if (!dados.cliente_servicos.length) {
     lista.innerHTML = '';
     empty.style.display = 'block';
+    if (destaque) destaque.style.display = 'none';
     return;
   }
   empty.style.display = 'none';
+
+  // Destaque do próximo serviço: compara pelo dia da semana (0-6) a partir de
+  // hoje, para que a área do cliente responda logo "quando é a minha limpeza?".
+  if (destaque) {
+    const hojeIdx  = new Date().getDay();
+    const ordenado = [...dados.cliente_servicos].sort((a, b) => {
+      const da = (a.dia - hojeIdx + 7) % 7, db = (b.dia - hojeIdx + 7) % 7;
+      if (da !== db) return da - db;
+      return (a.inicio || '').localeCompare(b.inicio || '');
+    });
+    const prox = ordenado[0];
+    if (prox) {
+      const func = dados.funcionarias_pub.find(f => f.id === prox.funcionaria_id);
+      const diasAte = (prox.dia - hojeIdx + 7) % 7;
+      const quando  = diasAte === 0 ? 'Hoje' : diasAte === 1 ? 'Amanhã' : NOMES_DIAS[prox.dia] || '';
+      destaque.style.display = 'flex';
+      destaque.innerHTML = `
+        <div class="cliente-proximo-icon"><i data-lucide="calendar-clock"></i></div>
+        <div>
+          <div class="cliente-proximo-label">Próximo serviço</div>
+          <div class="cliente-proximo-valor">${escapeHtml(quando)} · ${escapeHtml(prox.inicio)} – ${escapeHtml(prox.fim)}</div>
+          <div class="cliente-proximo-func">${func ? escapeHtml(func.nome) : 'Profissional a atribuir'}</div>
+        </div>`;
+      safeCreateIcons();
+    } else {
+      destaque.style.display = 'none';
+    }
+  }
+
   lista.innerHTML = dados.cliente_servicos.map(s => {
     const func = dados.funcionarias_pub.find(f => f.id === s.funcionaria_id);
     return `
       <div class="cliente-servico-card">
-        <div class="cliente-servico-dia">${NOMES_DIAS[s.dia] || ''}</div>
+        <div class="cliente-servico-dia">${escapeHtml(NOMES_DIAS[s.dia] || '')}</div>
         <div class="cliente-servico-info">
-          <div class="cliente-servico-hora">${s.inicio} – ${s.fim}</div>
-          <div class="cliente-servico-func">${func ? func.nome : 'A atribuir'}</div>
+          <div class="cliente-servico-hora">${escapeHtml(s.inicio)} – ${escapeHtml(s.fim)}</div>
+          <div class="cliente-servico-func">${func ? escapeHtml(func.nome) : 'A atribuir'}</div>
         </div>
+        <button class="btn-sm btn-secondary cliente-servico-reagendar" type="button" onclick="pedirReagendamento('${s.id}')">Pedir alteração</button>
       </div>`;
   }).join('');
 }
@@ -2773,8 +2816,8 @@ function renderClienteChat() {
       : '';
     return `
       <div class="chat-msg ${m.remetente === 'empresa' ? 'equipa' : 'cliente'}">
-        <div class="chat-msg-autor">${m.autor_nome}</div>
-        <div class="chat-msg-texto">${m.mensagem}</div>
+        <div class="chat-msg-autor">${escapeHtml(m.autor_nome)}</div>
+        <div class="chat-msg-texto">${escapeHtml(m.mensagem)}</div>
         <div class="chat-msg-hora">${hora}</div>
       </div>`;
   }).join('');
@@ -2807,6 +2850,37 @@ function abrirPedidoOrcamento() {
   const desc = document.getElementById('orcamento-descricao');
   if (desc) desc.value = '';
   document.getElementById('modal-orcamento').classList.add('open');
+}
+
+// Pedido de alteração/reagendamento: em vez de deixar o cliente reescrever
+// a agenda diretamente (arriscado sem revisão), envia o pedido como mensagem
+// prioritária para a equipa responder — reaproveita o chat já existente.
+async function pedirReagendamento(servicoId) {
+  if (!authCliente) return;
+  const s = dados.cliente_servicos.find(x => mesmoId(x.id, servicoId));
+  if (!s) return;
+
+  const motivo = prompt('Descreva a alteração que precisa (novo dia/hora, ou pedido de cancelamento):');
+  if (motivo === null) return;
+  if (!motivo.trim()) { mostrarToast('Descreva a alteração antes de enviar.', 'error'); return; }
+
+  const dia   = NOMES_DIAS[s.dia] || '';
+  const texto = `📅 Pedido de alteração ao serviço de ${dia} (${s.inicio}–${s.fim}): ${motivo.trim()}`;
+  const obj = {
+    id:         gerarId(),
+    cliente_id: authCliente.id,
+    remetente:  'cliente',
+    autor_nome: authCliente.nome || 'Cliente',
+    mensagem:   texto,
+    lido:       false,
+  };
+  const { error } = await sb.from('mensagens_clientes').insert(obj);
+  if (error) { mostrarToast('Erro ao enviar pedido.', 'error'); return; }
+
+  dados.cliente_mensagens.push({ ...obj, created_at: new Date().toISOString() });
+  mostrarToast('Pedido enviado à equipa — vamos confirmar consigo em breve.', 'success');
+  irParaPaginaCliente('mensagens');
+  renderClienteChat();
 }
 
 async function enviarPedidoOrcamento() {
@@ -2847,7 +2921,7 @@ function renderChatClientesLista() {
     const ativo    = chatClienteAlvoId === c.id;
     return `
       <button class="chat-equipa-item${ativo ? ' active' : ''}" onclick="abrirChatCliente('${c.id}')">
-        <span class="chat-equipa-nome">${c.nome}</span>
+        <span class="chat-equipa-nome">${escapeHtml(c.nome)}</span>
         ${naoLidas ? `<span class="nav-badge">${naoLidas}</span>` : ''}
       </button>`;
   }).join('');
@@ -2879,8 +2953,8 @@ function carregarMensagemCliente_Staff() {
       : '';
     return `
       <div class="chat-msg ${m.remetente === 'empresa' ? 'equipa' : 'cliente'}">
-        <div class="chat-msg-autor">${m.autor_nome}</div>
-        <div class="chat-msg-texto">${m.mensagem}</div>
+        <div class="chat-msg-autor">${escapeHtml(m.autor_nome)}</div>
+        <div class="chat-msg-texto">${escapeHtml(m.mensagem)}</div>
         <div class="chat-msg-hora">${hora}</div>
       </div>`;
   }).join('');
@@ -2954,6 +3028,19 @@ function smoothScroll(id) {
   window.scrollTo({ top: Math.max(destino, 0), behavior: 'smooth' });
 }
 
+// Abre o WhatsApp com o número editável em "Fale Connosco" (contact_whatsapp).
+// Lê sempre o texto atual do ecrã, por isso funciona mesmo antes de dados.site_textos carregar.
+function abrirWhatsapp() {
+  const el = document.getElementById('pub-contact-whatsapp');
+  const bruto = (dados.site_textos && dados.site_textos.contact_whatsapp) || (el ? el.textContent : '');
+  const digitos = (bruto || '').replace(/[^\d]/g, '');
+  if (!digitos || digitos.length < 9) {
+    mostrarToast('Número de WhatsApp ainda não configurado.', 'error');
+    return;
+  }
+  window.open(`https://wa.me/${digitos}`, '_blank', 'noopener');
+}
+
 // Menu hamburger mobile (site público)
 function togglePubMenu() {
   const menu = document.getElementById('pubMobileMenu');
@@ -3024,7 +3111,7 @@ function renderAvaliacoes() {
         const nomeCliente = av.cliente_nome || 'Anónimo';
 
         return `
-          <div class="avaliacao-card" onclick="abrirModalAvaliacao('${av.id}')">
+          <div class="avaliacao-card" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}" onclick="abrirModalAvaliacao('${av.id}')">
             <div class="av-header">
               <div class="av-autor">
                 <div class="av-avatar">${nomeCliente[0].toUpperCase()}</div>
@@ -3035,8 +3122,8 @@ function renderAvaliacoes() {
               </div>
               <div class="av-estrelas">${estrelas}</div>
             </div>
-            ${func ? `<div class="av-func-tag"><i data-lucide="user" style="width:12px;height:12px;vertical-align:middle;margin-right:4px"></i>${func.nome}</div>` : ''}
-            ${av.comentario ? `<div class="av-comentario">${av.comentario}</div>` : ''}
+            ${func ? `<div class="av-func-tag"><i data-lucide="user" style="width:12px;height:12px;vertical-align:middle;margin-right:4px"></i>${escapeHtml(func.nome)}</div>` : ''}
+            ${av.comentario ? `<div class="av-comentario">${escapeHtml(av.comentario)}</div>` : ''}
             ${fotos.length ? `<div class="av-fotos-row">${fotos.slice(0,3).map(f => `<img src="${f}" class="av-foto-thumb" onerror="this.style.display='none'" />`).join('')}${fotos.length > 3 ? `<span class="av-fotos-mais">+${fotos.length - 3}</span>` : ''}</div>` : ''}
             <div class="av-footer">
               <span class="av-chat-count"><i data-lucide="message-circle" style="width:13px;height:13px;vertical-align:middle;margin-right:4px"></i>${chatCount} resposta${chatCount !== 1 ? 's' : ''}</span>
@@ -3089,13 +3176,13 @@ async function abrirModalAvaliacao(id) {
   document.getElementById('modal-av-detalhe').innerHTML = `
     <div class="av-detail-header">
       <div>
-        <h4>${av.cliente_nome}</h4>
-        <div class="av-data">${data}${av.cliente_email ? ` · ${av.cliente_email}` : ''}</div>
+        <h4>${escapeHtml(av.cliente_nome)}</h4>
+        <div class="av-data">${data}${av.cliente_email ? ` · ${escapeHtml(av.cliente_email)}` : ''}</div>
         <div class="av-estrelas" style="margin-top:6px">${estrelas}</div>
       </div>
-      ${func ? `<div class="av-func-pill"><i data-lucide="user" style="width:13px;height:13px;vertical-align:middle;margin-right:5px"></i>${func.nome}</div>` : ''}
+      ${func ? `<div class="av-func-pill"><i data-lucide="user" style="width:13px;height:13px;vertical-align:middle;margin-right:5px"></i>${escapeHtml(func.nome)}</div>` : ''}
     </div>
-    ${av.comentario ? `<div class="av-comentario-full">${av.comentario}</div>` : ''}
+    ${av.comentario ? `<div class="av-comentario-full">${escapeHtml(av.comentario)}</div>` : ''}
     ${fotos.length ? `<div class="av-fotos-grid">${fotos.map(f => `<img src="${f}" class="av-foto-full" onclick="abrirFotoAvaliacao('${f}')" onerror="this.style.display='none'" />`).join('')}</div>` : ''}`;
 
   const delBtnAv = document.getElementById('btn-eliminar-avaliacao');
@@ -3121,8 +3208,8 @@ function carregarChatAvaliacao(avId) {
     const isEquipa = dados.usuarios.some(u => u.nome === m.autor_nome);
     return `
       <div class="chat-msg ${isEquipa ? 'equipa' : 'cliente'}">
-        <div class="chat-msg-autor">${m.autor_nome}</div>
-        <div class="chat-msg-texto">${m.mensagem}</div>
+        <div class="chat-msg-autor">${escapeHtml(m.autor_nome)}</div>
+        <div class="chat-msg-texto">${escapeHtml(m.mensagem)}</div>
         <div class="chat-msg-hora">${hora}</div>
       </div>`;
   }).join('');
@@ -3270,8 +3357,8 @@ function renderPublicAvaliacoes() {
             </div>
             <div class="pub-av-estrelas">${estrelas}</div>
           </div>
-          ${func ? `<div class="pub-av-func-tag">🧹 ${func.nome}</div>` : ''}
-          ${av.comentario ? `<p class="pub-av-texto">${av.comentario}</p>` : ''}
+          ${func ? `<div class="pub-av-func-tag">🧹 ${escapeHtml(func.nome)}</div>` : ''}
+          ${av.comentario ? `<p class="pub-av-texto">${escapeHtml(av.comentario)}</p>` : ''}
           ${fotos.length ? `<div class="av-fotos-row">${fotos.slice(0, 3).map(f => `<img src="${f}" class="av-foto-thumb" onclick="abrirFotoAvaliacao('${f}')" onerror="this.style.display='none'" />`).join('')}${fotos.length > 3 ? `<span class="av-fotos-mais">+${fotos.length - 3}</span>` : ''}</div>` : ''}
 
           <div class="pub-av-thread">
@@ -3331,8 +3418,8 @@ function renderMensagensThreadPublico(msgs) {
     const isEquipa = dados.usuarios.some(u => u.nome === m.autor_nome);
     return `
       <div class="chat-msg ${isEquipa ? 'equipa' : 'cliente'}">
-        <div class="chat-msg-autor">${m.autor_nome}${isEquipa ? ' · Equipa BORG' : ''}</div>
-        <div class="chat-msg-texto">${m.mensagem}</div>
+        <div class="chat-msg-autor">${escapeHtml(m.autor_nome)}${isEquipa ? ' · Equipa BORG' : ''}</div>
+        <div class="chat-msg-texto">${escapeHtml(m.mensagem)}</div>
         <div class="chat-msg-hora">${hora}</div>
       </div>`;
   }).join('');
@@ -3491,7 +3578,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (selFuncAv) {
     const { data: funcPublicas } = await sb.from('funcionarias_publicas').select('*');
     selFuncAv.innerHTML = '<option value="">Qualquer funcionária/o</option>' +
-      (funcPublicas || []).map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
+      (funcPublicas || []).map(f => `<option value="${f.id}">${escapeHtml(f.nome)}</option>`).join('');
   }
 
   // Inicializar estrelas interativas no formulário público
