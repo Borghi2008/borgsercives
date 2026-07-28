@@ -52,6 +52,7 @@
           <a href="#pub-como" onclick="smoothScroll('pub-como')">Como Funciona</a>
           <a href="#pub-produtos" onclick="smoothScroll('pub-produtos')">Produtos</a>
           <a href="#pub-avaliacoes" onclick="smoothScroll('pub-avaliacoes')">Avaliações</a>
+          <a href="#pub-faq" onclick="smoothScroll('pub-faq')">FAQ</a>
           <a href="#pub-contacto" onclick="smoothScroll('pub-contacto')">Contacto</a>
         </div>
         <div class="pub-nav-actions">
@@ -319,6 +320,42 @@
       </div>
     </section>
 
+    <!-- FAQ -->
+    <section class="pub-section" id="pub-faq">
+      <div class="pub-container">
+        <div class="pub-section-header">
+          <span class="pub-eyebrow">Dúvidas Frequentes</span>
+          <h2>Perguntas que nos fazem mais</h2>
+        </div>
+        <div class="pub-faq-list">
+          <details class="pub-faq-item">
+            <summary>Como funciona o pedido de orçamento?</summary>
+            <p>Entra em contacto por telefone, email, WhatsApp ou pelo formulário aqui em baixo. Avaliamos o espaço e as suas necessidades e enviamos um orçamento personalizado, sem qualquer compromisso da sua parte.</p>
+          </details>
+          <details class="pub-faq-item">
+            <summary>Posso escolher os dias e horários da limpeza?</summary>
+            <p>Sim. Combinamos consigo os dias e horários que melhor se encaixam na sua rotina, e pode pedir alterações a qualquer momento através da área de cliente ou por mensagem.</p>
+          </details>
+          <details class="pub-faq-item">
+            <summary>A equipa é fixa ou muda a cada visita?</summary>
+            <p>Sempre que possível, mantemos a mesma profissional associada ao seu serviço, para garantir consistência e confiança ao longo do tempo.</p>
+          </details>
+          <details class="pub-faq-item">
+            <summary>Preciso de fornecer produtos de limpeza?</summary>
+            <p>Não é necessário — a nossa equipa leva o material adequado. Se preferir usar produtos específicos da sua casa ou escritório, é só combinar connosco antecipadamente.</p>
+          </details>
+          <details class="pub-faq-item">
+            <summary>Como posso acompanhar os meus serviços agendados?</summary>
+            <p>Depois de ser cliente, tem acesso a uma área pessoal onde vê os próximos serviços agendados e pode falar diretamente connosco a qualquer momento.</p>
+          </details>
+          <details class="pub-faq-item">
+            <summary>Em que zonas trabalham?</summary>
+            <p>Atuamos principalmente na zona de Londres, Reino Unido. Contacte-nos com a sua morada para confirmarmos disponibilidade na sua área.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
     <!-- Contacto / Chat -->
     <section class="pub-section pub-contact-section" id="pub-contacto">
       <div class="pub-container">
@@ -333,6 +370,13 @@
                 <div class="editable-block">
                   <span id="pub-contact-telefone" data-content-key="contact_telefone">+351 XXX XXX XXX</span>
                   <button class="edit-inline-btn pub-edit-trigger" id="edit-contact-telefone" onclick="iniciarEdicaoInline('contact_telefone','pub-contact-telefone')" style="display:none;"><i data-lucide="edit-3"></i></button>
+                </div>
+              </div>
+              <div class="pub-contact-detail-row">
+                <div class="pub-contact-icon-wrap" style="background:#25D3661a;color:#25D366;"><i data-lucide="message-circle"></i></div>
+                <div class="editable-block">
+                  <a href="#" onclick="abrirWhatsapp();return false;" id="pub-contact-whatsapp" data-content-key="contact_whatsapp" style="color:inherit;text-decoration:none;">+351 XXX XXX XXX</a>
+                  <button class="edit-inline-btn pub-edit-trigger" id="edit-contact-whatsapp" onclick="iniciarEdicaoInline('contact_whatsapp','pub-contact-whatsapp')" style="display:none;" title="Editar número de WhatsApp"><i data-lucide="edit-3"></i></button>
                 </div>
               </div>
               <div class="pub-contact-detail-row">
@@ -410,6 +454,10 @@
     </a>
 
     <!-- Footer -->
+    <button class="pub-whatsapp-fab" onclick="abrirWhatsapp()" title="Falar no WhatsApp" aria-label="Falar no WhatsApp">
+      <i data-lucide="message-circle"></i>
+    </button>
+
     <footer class="pub-footer">
       <div class="pub-container">
         <div class="pub-footer-inner">
@@ -521,28 +569,28 @@
           <p class="page-subtitle">Análise e estatísticas</p>
         </div>
         <div class="stats-grid">
-          <div class="stat-card" onclick="irParaPagina('agenda')" title="Ver agenda">
+          <div class="stat-card" onclick="irParaPagina('agenda')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}" tabindex="0" role="button" title="Ver agenda">
             <div class="stat-icon" style="background:#EFF6FF;color:#3B82F6;"><i data-lucide="calendar-check"></i></div>
             <div class="stat-info">
               <span class="stat-value" id="stat-servicos">0</span>
               <span class="stat-label">Serviços na Semana</span>
             </div>
           </div>
-          <div class="stat-card" onclick="irParaPagina('clientes')" title="Ver clientes">
+          <div class="stat-card" onclick="irParaPagina('clientes')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}" tabindex="0" role="button" title="Ver clientes">
             <div class="stat-icon" style="background:#F0FDF4;color:#10B981;"><i data-lucide="users"></i></div>
             <div class="stat-info">
               <span class="stat-value" id="stat-clientes">0</span>
               <span class="stat-label">Clientes Ativos</span>
             </div>
           </div>
-          <div class="stat-card" onclick="irParaPagina('agenda')" title="Ver agenda">
+          <div class="stat-card" onclick="irParaPagina('agenda')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}" tabindex="0" role="button" title="Ver agenda">
             <div class="stat-icon" style="background:#FFF7ED;color:#F59E0B;"><i data-lucide="clock"></i></div>
             <div class="stat-info">
               <span class="stat-value" id="stat-horas">0h</span>
               <span class="stat-label">Horas Totais</span>
             </div>
           </div>
-          <div class="stat-card" onclick="irParaPagina('funcionarias')" title="Ver funcionárias/os">
+          <div class="stat-card" onclick="irParaPagina('funcionarias')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}" tabindex="0" role="button" title="Ver funcionárias/os">
             <div class="stat-icon" style="background:#FDF4FF;color:#A855F7;"><i data-lucide="briefcase"></i></div>
             <div class="stat-info">
               <span class="stat-value" id="stat-funcionarias">0</span>
@@ -702,6 +750,7 @@
           </button>
         </div>
 
+        <p class="agenda-scroll-hint">← desliza para ver os outros dias →</p>
         <div class="agenda-scroll" id="viewSemana">
           <div class="agenda-container" id="agenda-container"></div>
         </div>
@@ -920,11 +969,17 @@
         <div class="client-page-header">
           <h2>Os Meus Serviços</h2>
         </div>
+        <div id="cliente-proximo-servico" class="cliente-proximo-servico" style="display:none;"></div>
         <div id="cliente-servicos-lista" class="cliente-servicos-lista"></div>
         <div id="cliente-servicos-empty" class="empty-state" style="display:none;">
           <i data-lucide="calendar-x"></i>
           <h3>Ainda não tem serviços agendados</h3>
           <p>Assim que tiver uma limpeza marcada, vai aparecer aqui.</p>
+        </div>
+        <div class="cliente-avaliar-convite">
+          <i data-lucide="star"></i>
+          <span>Já experimentou os nossos serviços? A sua opinião ajuda-nos a melhorar.</span>
+          <a href="/#pub-avaliacoes" target="_blank" class="btn-sm btn-secondary">Deixar avaliação</a>
         </div>
       </section>
     </main>
