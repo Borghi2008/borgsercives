@@ -754,6 +754,7 @@
         <div class="agenda-scroll" id="viewSemana">
           <div class="agenda-container" id="agenda-container"></div>
         </div>
+        <div class="agenda-mobile-list" id="agenda-mobile-list"></div>
 
         <div id="viewMes" style="display:none;">
           <div class="agenda-mes-grid" id="agenda-mes-grid"></div>
@@ -976,10 +977,10 @@
           <h3>Ainda não tem serviços agendados</h3>
           <p>Assim que tiver uma limpeza marcada, vai aparecer aqui.</p>
         </div>
-        <div class="cliente-avaliar-convite">
+        <div class="cliente-avaliar-convite" id="cliente-avaliar-convite">
           <i data-lucide="star"></i>
-          <span>Já experimentou os nossos serviços? A sua opinião ajuda-nos a melhorar.</span>
-          <a href="/#pub-avaliacoes" target="_blank" class="btn-sm btn-secondary">Deixar avaliação</a>
+          <span id="cliente-avaliar-texto">Já experimentou os nossos serviços? A sua opinião ajuda-nos a melhorar.</span>
+          <a href="/#pub-avaliacoes" target="_blank" class="btn-sm btn-secondary" id="cliente-avaliar-btn" onclick="marcarConviteVisto()">Deixar avaliação</a>
         </div>
       </section>
     </main>
