@@ -191,6 +191,38 @@ function validarTelefone(telefone) {
   return /^\+?\d{9,15}$/.test(limpo);
 }
 
+// Normaliza um telefone para um formato consistente ao guardar — evita que
+// o mesmo número fique duplicado em pesquisas/autocomplete só por ter sido
+// escrito de forma diferente (ex: "+44 7565 697802" vs "+44 756 569 7802").
+function formatarTelefone(telefone) {
+  const bruto = (telefone || '').trim();
+  if (!bruto) return '';
+  const comMais = bruto.startsWith('+');
+  const digitos = bruto.replace(/\D/g, '');
+  if (!digitos) return '';
+
+  if (digitos.startsWith('44') && digitos.length === 12) {
+    return `+44 ${digitos.slice(2, 6)} ${digitos.slice(6)}`;
+  }
+  if (digitos.startsWith('351') && digitos.length === 12) {
+    const n = digitos.slice(3);
+    return `+351 ${n.slice(0, 3)} ${n.slice(3, 6)} ${n.slice(6)}`;
+  }
+  if (!comMais && digitos.length === 9) {
+    return `${digitos.slice(0, 3)} ${digitos.slice(3, 6)} ${digitos.slice(6)}`;
+  }
+  return (comMais ? '+' : '') + digitos;
+}
+
+// Compara dois telefones ignorando espaços/pontuação/indicativo em falta —
+// para pesquisa e deteção de duplicados mesmo com grafias diferentes.
+function telefonesIguais(a, b) {
+  const so = t => (t || '').replace(/\D/g, '').replace(/^0+/, '');
+  const da = so(a), db = so(b);
+  if (!da || !db) return false;
+  return da === db || da.endsWith(db) || db.endsWith(da);
+}
+
 // Escapa texto vindo de utilizadores (nomes, mensagens, comentários, etc.)
 // antes de inserir em innerHTML — impede que alguém injete <script>/onerror
 // através de um campo de formulário e esse código corra no ecrã de outra
@@ -380,7 +412,9 @@ function renderDashboard() {
   const diaHoje = hoje.getDay();
   const idxHoje = diaHoje === 0 ? 6 : diaHoje - 1;
   const containerHoje = document.getElementById('servicos-hoje');
-  const servicosHoje  = servicos.filter(s => Number(s.dia) === idxHoje);
+  // Filtra por dia da semana E pela semana certa (semanaOffset 0 = semana atual) —
+  // sem isto, um serviço de outra semana no mesmo dia da semana aparecia aqui por engano.
+  const servicosHoje  = servicos.filter(s => Number(s.dia) === idxHoje && Number(s.semanaOffset || 0) === 0);
 
   if (!servicosHoje.length) {
     containerHoje.innerHTML = `<div class="empty-state-small">
@@ -390,14 +424,18 @@ function renderDashboard() {
     containerHoje.innerHTML = servicosHoje.map(s => {
       const cliente = dados.clientes.find(c => c.id === s.clienteId);
       const func    = dados.funcionarias.find(f => f.id === s.funcionariaId);
+      const feito   = s.estado === 'concluido';
       return `
-        <div class="servico-hoje-item">
+        <div class="servico-hoje-item ${feito ? 'feito' : ''}">
           <div class="servico-dot"></div>
           <div class="servico-info-sm">
             <span class="s-cliente">${escapeHtml(cliente?.nome || '—')}</span>
             <span class="s-func">${escapeHtml(func?.nome || '—')}</span>
           </div>
           <span class="servico-horario">${s.inicio}–${s.fim}</span>
+          ${feito
+            ? `<span class="servico-feito-badge" title="Serviço concluído"><i data-lucide="check-circle-2"></i></span>`
+            : `<button class="servico-marcar-feito" type="button" title="Marcar como concluído" onclick="marcarServicoConcluido('${s.id}')"><i data-lucide="check"></i></button>`}
         </div>`;
     }).join('');
   }
@@ -405,13 +443,33 @@ function renderDashboard() {
   safeCreateIcons();
 }
 
+// Marca um serviço de hoje como concluído — é isto que depois liga ao
+// convite de avaliação mostrado ao cliente no seu portal.
+async function marcarServicoConcluido(id) {
+  const { error } = await sb.from('servicos').update({ estado: 'concluido' }).eq('id', id);
+  if (error) {
+    mostrarToast(
+      error.message && error.message.includes('estado')
+        ? 'Falta correr a migração SQL que adiciona a coluna "estado" a servicos.'
+        : 'Erro ao marcar serviço.',
+      'error'
+    );
+    return;
+  }
+  const s = dados.servicos.find(x => mesmoId(x.id, id));
+  if (s) s.estado = 'concluido';
+  mostrarToast('Serviço marcado como concluído!', 'success');
+  renderDashboard();
+}
+
 /* ── 7. Clientes (CRUD) ───────────────────────────────────── */
 
 function renderClientes() {
-  const filtro = (document.getElementById('searchClientes')?.value || '').toLowerCase();
+  const filtro   = (document.getElementById('searchClientes')?.value || '').toLowerCase();
+  const filtroDig = filtro.replace(/\D/g, '');
   const lista  = dados.clientes.filter(c =>
     c.nome.toLowerCase().includes(filtro) ||
-    (c.telefone || '').includes(filtro)   ||
+    (filtroDig && (c.telefone || '').replace(/\D/g, '').includes(filtroDig)) ||
     (c.morada   || '').toLowerCase().includes(filtro)
   );
 
@@ -499,13 +557,14 @@ function buscarContasParaLigar() {
 
   if (termo.length < 2) { cont.innerHTML = ''; return; }
 
+  const termoDigitos = termo.replace(/\D/g, '');
   const candidatos = dados.clientes.filter(c => c.usuario_id && c.id !== idAtual).map(c => {
     const perfil = dados.usuarios.find(u => u.id === c.usuario_id);
     return { ...c, email: perfil?.email || '' };
   }).filter(c =>
     c.nome.toLowerCase().includes(termo) ||
-    (c.telefone || '').includes(termo) ||
-    c.email.toLowerCase().includes(termo)
+    c.email.toLowerCase().includes(termo) ||
+    (termoDigitos && (c.telefone || '').replace(/\D/g, '').includes(termoDigitos))
   );
 
   if (!candidatos.length) {
@@ -548,11 +607,22 @@ async function salvarCliente() {
   const usuarioId = document.getElementById('cliente-usuario')?.value || null;
   const obj = {
     nome,
-    telefone: document.getElementById('cliente-telefone').value.trim(),
+    telefone: formatarTelefone(document.getElementById('cliente-telefone').value.trim()),
     morada:   document.getElementById('cliente-morada').value.trim(),
     obs:      document.getElementById('cliente-obs').value.trim(),
     usuario_id: usuarioId || null,
   };
+
+  // Avisa antes de criar um registo novo se já existir um cliente com o
+  // mesmo telefone (mesmo escrito de forma diferente) — evita duplicados
+  // como o da imagem, em vez de só os esconder depois na pesquisa.
+  if (!id && obj.telefone) {
+    const existente = dados.clientes.find(c => telefonesIguais(c.telefone, obj.telefone));
+    if (existente) {
+      const continuar = confirm(`Já existe um cliente com este telefone: "${existente.nome}".\n\nTem a certeza que quer criar um novo registo, em vez de editar o existente?`);
+      if (!continuar) return;
+    }
+  }
 
   if (id) {
     const { error } = await sb.from('clientes').update(obj).eq('id', id);
@@ -797,6 +867,43 @@ function renderAgenda() {
       container.appendChild(cell);
     });
   });
+
+  // Vista mobile: os mesmos dados da grelha, organizados por dia (lista
+  // vertical) em vez de colunas — evita obrigar a scroll horizontal no
+  // telemóvel. Construída sempre, mesmo escondida por CSS em ecrãs largos,
+  // para nunca ficar dessincronizada da grelha.
+  const mobileList = document.getElementById('agenda-mobile-list');
+  if (mobileList) {
+    mobileList.innerHTML = dias.map((d, di) => {
+      const isHojeDia = d.getTime() === hoje.getTime();
+      const servicosDoDia = dados.servicos
+        .filter(s => Number(s.dia) === di && s.semanaOffset === semanaOffset)
+        .sort((a, b) => a.inicio.localeCompare(b.inicio));
+
+      const linhas = servicosDoDia.length
+        ? servicosDoDia.map(s => {
+            const cliente     = dados.clientes.find(c => c.id === s.clienteId);
+            const func        = dados.funcionarias.find(f => f.id === s.funcionariaId);
+            const podeEditar  = podeEditarAgendaDe(s.funcionariaId);
+            return `
+              <div class="agenda-m-item"${podeEditar ? ` onclick="abrirModalServico('${s.id}')"` : ''}>
+                <div class="agenda-m-hora">${escapeHtml(s.inicio)}<span>${escapeHtml(s.fim)}</span></div>
+                <div class="agenda-m-info">
+                  <span class="agenda-m-cliente">${escapeHtml(cliente?.nome || '—')}</span>
+                  <span class="agenda-m-func">${func ? escapeHtml(func.nome) : '—'}</span>
+                </div>
+                ${podeEditar ? `<button class="agenda-m-del" onclick="eliminarServico('${s.id}',event)" title="Eliminar"><i data-lucide="x"></i></button>` : ''}
+              </div>`;
+          }).join('')
+        : `<div class="agenda-m-vazio">Sem serviços agendados</div>`;
+
+      return `
+        <div class="agenda-m-dia${isHojeDia ? ' hoje' : ''}">
+          <div class="agenda-m-dia-header">${NOMES_DIAS[di]} <span>${fmt(d)}</span>${isHojeDia ? '<span class="agenda-m-hoje-tag">Hoje</span>' : ''}</div>
+          <div class="agenda-m-dia-body">${linhas}</div>
+        </div>`;
+    }).join('');
+  }
 
   safeCreateIcons();
 }
@@ -1518,9 +1625,18 @@ async function carregarMensagensApp() {
 
 /* ── 10.3 Chat Interno (Colaborador ↔ Gestão) ─────────────── */
 
-// Lista de contas de colaboradores (para a gestão escolher com quem falar)
+// Lista de contas de colaboradores (para a gestão escolher com quem falar).
+// Importante: papelNivel() devolve um valor alto (PAPEL_HIERARQUIA.length+1)
+// tanto para "sem cargo/rebaixado" como para qualquer papel desconhecido —
+// por isso precisa do limite superior explícito, ou uma conta rebaixada
+// ("Sem cargo") continuava a aparecer aqui como se fosse colaboradora ativa.
 function threadsColaboradores() {
-  return dados.usuarios.filter(u => papelNivel(u.papel) > papelNivel('Gestor'));
+  const nivelGestor      = papelNivel('Gestor');
+  const nivelDesconhecido = PAPEL_HIERARQUIA.length + 1;
+  return dados.usuarios.filter(u => {
+    const nivel = papelNivel(u.papel);
+    return nivel > nivelGestor && nivel < nivelDesconhecido;
+  });
 }
 
 function renderChatEquipaLista() {
@@ -1985,7 +2101,7 @@ async function loginUsuario() {
 async function registrarUsuario() {
   const email     = document.getElementById('reg-email').value.trim().toLowerCase();
   const username  = document.getElementById('reg-username').value.trim().toLowerCase();
-  const telefone  = document.getElementById('reg-telefone').value.trim();
+  const telefone  = formatarTelefone(document.getElementById('reg-telefone').value.trim());
   const senha     = document.getElementById('reg-senha').value;
   const confirmar = document.getElementById('reg-confirmar-senha').value;
 
@@ -2264,7 +2380,7 @@ function previewPerfilFoto(event) {
 async function salvarPerfil() {
   const nome     = document.getElementById('profileName').value.trim();
   const email    = document.getElementById('profileEmail').value.trim().toLowerCase();
-  const telefone = document.getElementById('profileTelefone').value.trim();
+  const telefone = formatarTelefone(document.getElementById('profileTelefone').value.trim());
   const preview  = document.getElementById('profilePhotoPreview');
   const foto     = preview.dataset.photo || null;
 
@@ -2578,8 +2694,8 @@ async function salvarTextoSite(chave, elementId, novoValor) {
 // Envio do formulário de contacto público (visitantes não autenticados)
 async function enviarContacto() {
   const nome     = document.getElementById('contacto-nome').value.trim();
-  const email    = document.getElementById('contacto-email').value.trim();
-  const telefone = document.getElementById('contacto-telefone').value.trim();
+  const email    = document.getElementById('contacto-email').value.trim().toLowerCase();
+  const telefone = formatarTelefone(document.getElementById('contacto-telefone').value.trim());
   const assunto  = document.getElementById('contacto-assunto').value;
   const mensagem = document.getElementById('contacto-mensagem').value.trim();
 
@@ -2790,17 +2906,39 @@ function renderClienteServicos() {
   }
 
   lista.innerHTML = dados.cliente_servicos.map(s => {
-    const func = dados.funcionarias_pub.find(f => f.id === s.funcionaria_id);
+    const func  = dados.funcionarias_pub.find(f => f.id === s.funcionaria_id);
+    const feito = s.estado === 'concluido';
     return `
       <div class="cliente-servico-card">
         <div class="cliente-servico-dia">${escapeHtml(NOMES_DIAS[s.dia] || '')}</div>
         <div class="cliente-servico-info">
-          <div class="cliente-servico-hora">${escapeHtml(s.inicio)} – ${escapeHtml(s.fim)}</div>
+          <div class="cliente-servico-hora">${escapeHtml(s.inicio)} – ${escapeHtml(s.fim)} ${feito ? '<span class="cliente-servico-feito">Concluído</span>' : ''}</div>
           <div class="cliente-servico-func">${func ? escapeHtml(func.nome) : 'A atribuir'}</div>
         </div>
         <button class="btn-sm btn-secondary cliente-servico-reagendar" type="button" onclick="pedirReagendamento('${s.id}')">Pedir alteração</button>
       </div>`;
   }).join('');
+
+  // Convite de avaliação: fica mais direto quando há um serviço já
+  // marcado como concluído pela equipa e o cliente ainda não viu o convite.
+  const conviteTexto = document.getElementById('cliente-avaliar-texto');
+  const conviteBtn    = document.getElementById('cliente-avaliar-btn');
+  if (conviteTexto && conviteBtn) {
+    const jaViu = localStorage.getItem('lg_convite_avaliacao_visto') === '1';
+    const temConcluido = dados.cliente_servicos.some(s => s.estado === 'concluido');
+    if (temConcluido && !jaViu) {
+      conviteTexto.textContent = 'A sua limpeza mais recente já foi concluída — conte-nos como correu!';
+      conviteBtn.textContent   = 'Avaliar agora';
+    } else {
+      conviteTexto.textContent = 'Já experimentou os nossos serviços? A sua opinião ajuda-nos a melhorar.';
+      conviteBtn.textContent   = 'Deixar avaliação';
+    }
+  }
+}
+
+// Evita repetir o convite de avaliação em toda a visita depois de o cliente já o ter visto/usado.
+function marcarConviteVisto() {
+  localStorage.setItem('lg_convite_avaliacao_visto', '1');
 }
 
 function renderClienteChat() {
@@ -3237,7 +3375,7 @@ async function enviarChatAvaliacao() {
 // Submissão pública de avaliação (site público)
 async function enviarAvaliacaoPublica() {
   const nome        = document.getElementById('av-pub-nome').value.trim();
-  const email       = document.getElementById('av-pub-email').value.trim();
+  const email       = document.getElementById('av-pub-email').value.trim().toLowerCase();
   const funcionariaId = document.getElementById('av-pub-funcionaria').value;
   const comentario  = document.getElementById('av-pub-comentario').value.trim();
   const fotosInput  = document.getElementById('av-pub-fotos');
